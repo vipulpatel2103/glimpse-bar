@@ -1,0 +1,82 @@
+import type { LucideIcon } from "lucide-react"
+import {
+  forwardRef,
+  type ForwardedRef,
+  type KeyboardEvent
+} from "react"
+
+interface AppIconButtonProps {
+  Icon: LucideIcon
+  label: string
+  isActive?: boolean
+  theme: "light" | "dark"
+  onActivate: () => void
+  onArrowKey?: (dir: "up" | "down") => void
+}
+
+function AppIconButtonInner(
+  {
+    Icon,
+    label,
+    isActive = false,
+    theme,
+    onActivate,
+    onArrowKey
+  }: AppIconButtonProps,
+  ref: ForwardedRef<HTMLButtonElement>
+) {
+  const handleKey = (e: KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault()
+      onActivate()
+      return
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault()
+      onArrowKey?.("down")
+      return
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault()
+      onArrowKey?.("up")
+    }
+  }
+
+  const tileBg =
+    theme === "dark"
+      ? "rgba(255, 255, 255, 0.10)"
+      : "rgba(255, 255, 255, 0.95)"
+  const tileBorder =
+    theme === "dark"
+      ? "rgba(255, 255, 255, 0.14)"
+      : "rgba(0, 0, 0, 0.08)"
+  const iconColor = theme === "dark" ? "#fafafa" : "#171717"
+
+  return (
+    <button
+      ref={ref}
+      type="button"
+      aria-label={label}
+      aria-pressed={isActive}
+      onClick={onActivate}
+      onKeyDown={handleKey}
+      style={{
+        backgroundColor: tileBg,
+        border: `1px solid ${tileBorder}`,
+        color: iconColor,
+        boxShadow: isActive
+          ? "0 0 0 2px #3b82f6, 0 1px 3px rgba(0,0,0,0.2)"
+          : "0 1px 3px rgba(0,0,0,0.2)"
+      }}
+      className={
+        "flex h-9 w-9 items-center justify-center rounded-full " +
+        "transition-transform duration-100 " +
+        "hover:brightness-110 active:scale-[0.94] " +
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 focus-visible:ring-offset-neutral-900"
+      }>
+      <Icon size={18} strokeWidth={2.25} aria-hidden="true" />
+    </button>
+  )
+}
+
+export const AppIconButton = forwardRef(AppIconButtonInner)
