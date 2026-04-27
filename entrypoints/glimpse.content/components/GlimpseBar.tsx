@@ -29,10 +29,20 @@ export function GlimpseBar({
   onCommitPosition,
   onActivateApp
 }: GlimpseBarProps) {
-  const { position: livePos, isDragging, dragHandlers } = useDrag({
-    initial: position,
+  // Keep the latest canonical position in a ref so the drag handler can read
+  // it on pointerdown without re-creating callbacks on every render.
+  const positionRef = useRef<Position>(position)
+  positionRef.current = position
+
+  const { livePos, isDragging, dragHandlers } = useDrag({
+    getCurrentPosition: () => positionRef.current,
     onCommit: onCommitPosition
   })
+
+  // While dragging: use livePos. Idle: use the canonical (storage-backed)
+  // position from props. This avoids the "Y resets after refresh" bug caused
+  // by useState seeding once and ignoring later prop updates.
+  const renderPos: Position = isDragging && livePos ? livePos : position
 
   const buttonsRef = useRef<Array<HTMLButtonElement | null>>([])
 
@@ -67,11 +77,11 @@ export function GlimpseBar({
     ? {
         left: 0,
         top: 0,
-        transform: `translate3d(${livePos.x}px, ${livePos.y}px, 0)`
+        transform: `translate3d(${renderPos.x}px, ${renderPos.y}px, 0)`
       }
     : edge === "right"
-      ? { right: 0, top: livePos.y }
-      : { left: 0, top: livePos.y }
+      ? { right: 0, top: renderPos.y }
+      : { left: 0, top: renderPos.y }
 
   const style: CSSProperties = {
     position: "fixed",

@@ -4,7 +4,12 @@ import { useCallback, useRef, useState } from "react"
 import { BAR_HEIGHT, BAR_WIDTH, type Edge, type Position } from "~/lib/storage"
 
 export interface DragState {
-  position: Position
+  /**
+   * Position to render WHILE DRAGGING. `null` when idle — render the canonical
+   * position from props instead. This separation avoids the stale-initial-state
+   * bug where useState seeds once and ignores later prop updates.
+   */
+  livePos: Position | null
   isDragging: boolean
   dragHandlers: {
     onPointerDown: (e: ReactPointerEvent) => void
@@ -15,40 +20,49 @@ export interface DragState {
 }
 
 interface UseDragArgs {
-  initial: Position
+  /** Canonical position from storage. Read fresh on every pointerdown. */
+  getCurrentPosition: () => Position
   onCommit: (next: Position, edge: Edge) => void
 }
 
 const clamp = (n: number, min: number, max: number) =>
   Math.min(Math.max(n, min), max)
 
-export function useDrag({ initial, onCommit }: UseDragArgs): DragState {
-  const [position, setPosition] = useState<Position>(initial)
+export function useDrag({
+  getCurrentPosition,
+  onCommit
+}: UseDragArgs): DragState {
+  const [livePos, setLivePos] = useState<Position | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const offsetRef = useRef<Position>({ x: 0, y: 0 })
   const pointerIdRef = useRef<number | null>(null)
-  const liveRef = useRef<Position>(initial)
+  const liveRef = useRef<Position>({ x: 0, y: 0 })
 
   const onPointerDown = useCallback(
     (e: ReactPointerEvent) => {
       if (e.button !== 0) return
+      // Snapshot the CURRENT canonical position at drag start. This is where
+      // the bar visually sits right now; pointer offset is measured from it.
+      const start = getCurrentPosition()
+      liveRef.current = start
+      offsetRef.current = {
+        x: e.clientX - start.x,
+        y: e.clientY - start.y
+      }
       const target = e.currentTarget as HTMLElement
       target.setPointerCapture(e.pointerId)
       pointerIdRef.current = e.pointerId
-      offsetRef.current = {
-        x: e.clientX - liveRef.current.x,
-        y: e.clientY - liveRef.current.y
-      }
+      setLivePos(start)
       setIsDragging(true)
       e.preventDefault()
     },
-    []
+    [getCurrentPosition]
   )
 
   const onPointerMove = useCallback((e: ReactPointerEvent) => {
     if (pointerIdRef.current !== e.pointerId) return
-    // Use layout viewport (clientWidth/Height) so the scrollbar doesn't push
-    // the bar over the scrollbar on Windows Chrome.
+    // Layout viewport (clientWidth/Height) excludes the scrollbar so the bar
+    // doesn't sit under it on Windows Chrome.
     const vw = document.documentElement.clientWidth
     const vh = document.documentElement.clientHeight
     const nx = clamp(e.clientX - offsetRef.current.x, 0, vw - BAR_WIDTH)
@@ -59,7 +73,7 @@ export function useDrag({ initial, onCommit }: UseDragArgs): DragState {
     )
     const next = { x: nx, y: ny }
     liveRef.current = next
-    setPosition(next)
+    setLivePos(next)
   }, [])
 
   const finalize = useCallback(
@@ -73,16 +87,16 @@ export function useDrag({ initial, onCommit }: UseDragArgs): DragState {
         snappedEdge === "left" ? 0 : Math.max(0, vw - BAR_WIDTH)
       const snapped = { x: snappedX, y: liveRef.current.y }
       liveRef.current = snapped
-      setPosition(snapped)
       pointerIdRef.current = null
       setIsDragging(false)
+      setLivePos(null)
       onCommit(snapped, snappedEdge)
     },
     [onCommit]
   )
 
   return {
-    position,
+    livePos,
     isDragging,
     dragHandlers: {
       onPointerDown,
