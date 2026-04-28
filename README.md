@@ -23,9 +23,11 @@ The project is delivered in **phases**. Each phase has a folder under [`docs/pha
 ### Cross-cutting (full system)
 | Doc | What's in it |
 |---|---|
+| **[CLAUDE.md](CLAUDE.md)**                | **Project-specific instructions for Claude Code — read first every session.** |
+| **[design.md](design.md)**                | **Stitch-format design system spec for AI coding agents — read this first for any UI change.** |
 | [requirements.md](docs/requirements.md)   | Glossary, personas, FRs (with phase tags), NFRs, system AC |
 | [architecture.md](docs/architecture.md)   | WXT entrypoints, shadow root UI, storage model, plugin registry, build matrix |
-| [ui-design.md](docs/ui-design.md)         | Color tokens, typography, sizes, animations, accessibility |
+| [ui-design.md](docs/ui-design.md)         | Color tokens, typography, sizes, animations, accessibility (human deep-dive) |
 | [testing-plan.md](docs/testing-plan.md)   | Manual QA scripts, hard-case sites, release checklist |
 | [roadmap.md](docs/roadmap.md)             | Phase order, anti-goals, decision log (incl. the WXT switch) |
 
