@@ -1,7 +1,7 @@
 # Setup and UI/UX
 
 > **Phase folder:** `docs/phases/00-setup-and-ui-ux/`
-> **Status:** Active — fully planned (2026-04-27)
+> **Status:** Shipped (2026-04-28)
 > **Framework:** [WXT](https://wxt.dev/) + React 18 + Tailwind v3 + `@wxt-dev/storage`
 > **Goal:** ship the bar + panel + option page foundation. No real app integrations. Clicking an app icon opens a Glimpse Panel with an empty body. This phase exists to nail the UI/UX before any feature work.
 

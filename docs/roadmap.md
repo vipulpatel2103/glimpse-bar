@@ -10,8 +10,8 @@
 
 | Order | Phase folder | Status | One-liner |
 |---|---|---|---|
-| 1 | [`phases/00-setup-and-ui-ux/`](phases/00-setup-and-ui-ux/) | **Active — planned** | Bar + Panel + Option Page scaffolding. Drag, transparency, theme. No real app integrations; clicking an app icon opens an empty Glimpse Panel. |
-| 2 | [`phases/01-todo/`](phases/01-todo/) | Stub — not yet planned | Local TODO list as the first real app. CRUD, persistence, cross-tab sync. |
+| 1 | [`phases/00-setup-and-ui-ux/`](phases/00-setup-and-ui-ux/) | Shipped (2026-04-28) | Bar + Panel + Option Page scaffolding. Drag, transparency, theme. No real app integrations; clicking an app icon opens an empty Glimpse Panel. |
+| 2 | [`phases/01-todo/`](phases/01-todo/) | **Active — planned (2026-04-28)** | Local TODO list as the first real app. Compact + expanded modes, views (Today / Upcoming / Inbox / Completed + custom lists), dates, subtasks, right-click capture, badge counter. Recurring/reminders/notifications/omnibox split into Phase 01b. |
 | 3 | [`phases/02-github-prs/`](phases/02-github-prs/) | Stub — not yet planned | GitHub PR review queue. PAT first, OAuth later. |
 | 4 | [`phases/03-jira/`](phases/03-jira/) | Stub — not yet planned | Jira assigned-to-me issues. API token first, OAuth later. |
 | later | (TBD) | — | Calendar, Gmail glance, Linear, command palette, AI summaries. |
@@ -22,7 +22,7 @@
 
 ## What's Planned in Detail Today
 
-Only the **Setup and UI/UX** phase. See [`phases/00-setup-and-ui-ux/`](phases/00-setup-and-ui-ux/) for:
+The **Setup and UI/UX** phase has shipped. The **TODO** phase is fully planned — see [`phases/01-todo/`](phases/01-todo/) for:
 - scope (in / out)
 - step-by-step plan
 - phase-specific UI spec
@@ -75,3 +75,9 @@ These aren't on the schedule. They're parking-lot items to revisit after the fir
 | 2026-04-27 | No popup, no badge text | Bar is always-on; popup would be redundant. |
 | 2026-04-27 | `storage` + `<all_urls>` only — no `tabs`, `cookies`, etc. | Minimum permissions = easier store reviews + user trust. |
 | 2026-04-27 | Per-phase folder under `docs/phases/` | Lets each phase own its scope, plan, and verification without mutating cross-cutting docs. |
+| 2026-04-28 | TODO Phase 01 splits into 01 (core) + 01b (chrome alarms / notifications / omnibox / recurring) | Keeps the first real-app install prompt small (only `contextMenus` added). Recurring + reminders need a recurrence engine + scheduling that warrant their own phase. |
+| 2026-04-28 | Drop PLUS / Premium gating + glassmorphism panel surface from the source-app feature list | No business model yet — premium badges add noise. Glassmorphism violates `design.md` rule "Glimpse Panel surface is **always opaque**". |
+| 2026-04-28 | Drop Focus Mode + Set as Daily Goal context-menu entries | Premium-flavoured noise in the source app; no clear utility for v1 of Glimpse TODO. |
+| 2026-04-28 | Subtasks in TODO are **one level deep only** (no nesting) | Avoids the rabbit hole of nested-tree UX (collapse-all, drag-between-levels, breadcrumbs). |
+| 2026-04-28 | TODO panel has **compact (360 px) + expanded (≈720 px) modes**; user toggles via maximize button | Compact preserves the always-on glance feel; expanded gives sidebar-driven navigation when the user explicitly asks for it. Falls back to compact if `vw < 720`. |
+| 2026-04-28 | New permission to be added in TODO Step 9: `contextMenus` | Smallest possible Chrome integration that delivers a useful "Add selection as task" feature. Benign permission widely understood by users; confirmation entry will be added at Step 9 commit. |
