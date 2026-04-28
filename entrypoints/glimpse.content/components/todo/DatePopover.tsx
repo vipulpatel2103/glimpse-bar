@@ -86,11 +86,31 @@ export function DatePopover({
     const anchor = anchorRef.current
     if (!anchor) return
     const rect = anchor.getBoundingClientRect()
-    // Anchor below the icon, right-aligned to it so we keep the popover
-    // inside the panel for typical row-right placements.
-    let left = rect.right - POPOVER_WIDTH
-    if (left < 8) left = 8
-    setCoords({ top: rect.bottom + 4, left })
+    // The panel's motion.div carries a non-none transform (framer-motion's
+    // residual translate/scale). CSS contains position:fixed descendants
+    // inside any transformed ancestor, so the popover's "viewport" coords
+    // get re-interpreted as panel-relative and would land off-screen.
+    // Compensate by subtracting the transformed ancestor's bbox.
+    let offsetTop = 0
+    let offsetLeft = 0
+    let walker: HTMLElement | null = anchor.parentElement
+    while (walker) {
+      const cs = window.getComputedStyle(walker)
+      if (
+        cs.transform !== "none" ||
+        cs.perspective !== "none" ||
+        cs.filter !== "none"
+      ) {
+        const cb = walker.getBoundingClientRect()
+        offsetTop = cb.top
+        offsetLeft = cb.left
+        break
+      }
+      walker = walker.parentElement
+    }
+    let left = rect.right - POPOVER_WIDTH - offsetLeft
+    if (left < 8 - offsetLeft) left = 8 - offsetLeft
+    setCoords({ top: rect.bottom + 4 - offsetTop, left })
   }, [open, anchorRef])
 
   useEffect(() => {

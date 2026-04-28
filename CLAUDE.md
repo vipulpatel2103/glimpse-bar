@@ -127,6 +127,31 @@ edge === 'right' ? { right: 0, top: y } : { left: 0, top: y }
 { left: 0, top: 0, transform: `translate3d(${x}px, ${y}px, 0)` }
 ```
 
+### `position: fixed` is captured by the panel's `transform`
+
+The Glimpse Panel motion.div carries a non-`none` `transform` (framer-motion's residual `translate` / `scale` after the open animation). CSS spec: any `position: fixed` descendant of an ancestor with `transform`, `perspective`, or `filter` set to anything other than `none` becomes positioned relative to **that ancestor**, not the viewport. Coords from `getBoundingClientRect()` are viewport-relative — applying them as `top` / `left` on a fixed-positioned popover inside the panel renders the popover off-screen.
+
+Two ways out:
+
+1. Use `position: absolute` and a parent stacking context (give the row/header `position: relative; z-index: N`). Best for popovers that don't need to escape the panel's clip area.
+2. Keep `position: fixed` and **compensate** by subtracting the transformed ancestor's bbox:
+
+```ts
+let offsetTop = 0, offsetLeft = 0
+let walker = anchor.parentElement
+while (walker) {
+  const cs = window.getComputedStyle(walker)
+  if (cs.transform !== 'none' || cs.perspective !== 'none' || cs.filter !== 'none') {
+    const cb = walker.getBoundingClientRect()
+    offsetTop = cb.top
+    offsetLeft = cb.left
+    break
+  }
+  walker = walker.parentElement
+}
+setCoords({ top: rect.bottom + 4 - offsetTop, left: rect.right - W - offsetLeft })
+```
+
 ### Outside-click handlers — use `e.composedPath()`, not `e.target`
 
 When a `pointerdown` / `click` event bubbles out of the shadow root, the event's `target` gets retargeted to the shadow host (`<glimpse-ui>`). Using `el.contains(e.target)` to detect "click inside this element" therefore reports `false` for every click that happened inside the shadow root, and any "if outside, close" handler closes itself on every click — including its own buttons and inputs.
