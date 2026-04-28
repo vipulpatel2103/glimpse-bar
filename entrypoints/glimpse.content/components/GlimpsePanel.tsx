@@ -6,6 +6,7 @@ import type { AppDefinition } from "~/lib/apps/types"
 import { BAR_WIDTH, PANEL_GAP, PANEL_WIDTH, type Edge } from "~/lib/storage"
 
 import { usePrefersReducedMotion } from "../hooks/useTheme"
+import { TodoApp } from "./todo/TodoApp"
 
 interface GlimpsePanelProps {
   app: AppDefinition | null
@@ -129,39 +130,49 @@ export function GlimpsePanel({
             willChange: "transform"
           }}
           className="flex flex-col overflow-hidden rounded-2xl">
-          <header
-            className="flex h-11 items-center gap-2 px-3"
-            style={{
-              borderBottom:
-                theme === "dark"
-                  ? "1px solid rgba(255,255,255,0.06)"
-                  : "1px solid rgba(0,0,0,0.06)"
-            }}>
-            <app.Icon size={16} strokeWidth={2} aria-hidden="true" />
-            <h2 className="flex-1 text-[14px] font-semibold leading-none">
-              {app.name}
-            </h2>
-            <button
-              type="button"
-              aria-label={`Close ${app.name} panel`}
-              onClick={onClose}
-              className={
-                "flex h-7 w-7 items-center justify-center rounded transition-colors " +
-                "hover:bg-black/[0.04] dark:hover:bg-white/[0.06] " +
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              }>
-              <X size={16} strokeWidth={2} aria-hidden="true" />
-            </button>
-          </header>
-          <div className="flex flex-1 items-center justify-center px-6 py-8 text-center">
-            <p
-              className="text-[13px]"
-              style={{
-                color: theme === "dark" ? "#a3a3a3" : "#737373"
-              }}>
-              {app.name} — content lands in a later phase
-            </p>
-          </div>
+          {app.id === "todo" ? (
+            // TODO app owns its own header + body + footer in compact mode.
+            // Other apps fall back to the panel's built-in chrome until they
+            // ship; we'll generalise via AppDefinition.Renderer when GitHub
+            // PRs / Jira land.
+            <TodoApp theme={theme} />
+          ) : (
+            <>
+              <header
+                className="flex h-11 items-center gap-2 px-3"
+                style={{
+                  borderBottom:
+                    theme === "dark"
+                      ? "1px solid rgba(255,255,255,0.06)"
+                      : "1px solid rgba(0,0,0,0.06)"
+                }}>
+                <app.Icon size={16} strokeWidth={2} aria-hidden="true" />
+                <h2 className="flex-1 text-[14px] font-semibold leading-none">
+                  {app.name}
+                </h2>
+                <button
+                  type="button"
+                  aria-label={`Close ${app.name} panel`}
+                  onClick={onClose}
+                  className={
+                    "flex h-7 w-7 items-center justify-center rounded transition-colors " +
+                    "hover:bg-black/[0.04] dark:hover:bg-white/[0.06] " +
+                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  }>
+                  <X size={16} strokeWidth={2} aria-hidden="true" />
+                </button>
+              </header>
+              <div className="flex flex-1 items-center justify-center px-6 py-8 text-center">
+                <p
+                  className="text-[13px]"
+                  style={{
+                    color: theme === "dark" ? "#a3a3a3" : "#737373"
+                  }}>
+                  {app.name} — content lands in a later phase
+                </p>
+              </div>
+            </>
+          )}
         </motion.div>
       )}
     </AnimatePresence>
