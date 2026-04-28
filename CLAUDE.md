@@ -127,6 +127,21 @@ edge === 'right' ? { right: 0, top: y } : { left: 0, top: y }
 { left: 0, top: 0, transform: `translate3d(${x}px, ${y}px, 0)` }
 ```
 
+### Outside-click handlers — use `e.composedPath()`, not `e.target`
+
+When a `pointerdown` / `click` event bubbles out of the shadow root, the event's `target` gets retargeted to the shadow host (`<glimpse-ui>`). Using `el.contains(e.target)` to detect "click inside this element" therefore reports `false` for every click that happened inside the shadow root, and any "if outside, close" handler closes itself on every click — including its own buttons and inputs.
+
+```ts
+// ❌ wrong — e.target is the host, not the actual clicked node
+if (panel.contains(e.target as Node)) return
+
+// ✅ correct — composedPath preserves the real path through the shadow boundary
+const path = e.composedPath()
+if (path.includes(panel)) return
+```
+
+Applies to: panel outside-click dismissal, popover close handlers, anywhere else we listen on `window` / `document` while the trigger lives inside the shadow root.
+
 ### Shadow-root z-index — pin to max int after mount
 
 WXT's `createShadowRootUi({ position: 'overlay' })` doesn't set z-index. Without this, page UIs (Notion, ChatGPT, dashboards) paint over the bar.

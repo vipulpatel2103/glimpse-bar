@@ -62,19 +62,21 @@ export function GlimpsePanel({
       if (e.key === "Escape") onClose()
     }
     const onPointer = (e: PointerEvent) => {
-      const target = e.target as Node | null
-      if (!target) return
       const panel = panelRef.current
       if (!panel) return
-      // Click inside panel → ignore
-      if (panel.contains(target)) return
+      // Use composedPath so we see through the shadow-root boundary.
+      // e.target gets retargeted to <glimpse-ui> when the event bubbles
+      // past the shadow root, which would (incorrectly) treat every
+      // click inside the panel as "outside".
+      const path = e.composedPath()
+      if (path.includes(panel)) return
       // Click on bar → ignore (we share a shadow root with the bar)
       const rootNode = panel.getRootNode() as ShadowRoot | Document
       const bar =
         "querySelector" in rootNode
           ? rootNode.querySelector('[role="toolbar"]')
           : null
-      if (bar && bar.contains(target)) return
+      if (bar && path.includes(bar)) return
       onClose()
     }
     window.addEventListener("keydown", onKey)

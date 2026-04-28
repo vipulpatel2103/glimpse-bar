@@ -52,10 +52,10 @@ export function TodoHeader({
   useEffect(() => {
     if (!open) return
     const onDown = (e: PointerEvent) => {
-      const target = e.target as Node | null
-      if (!target) return
-      if (popoverRef.current?.contains(target)) return
-      if (triggerRef.current?.contains(target)) return
+      // composedPath sees through the shadow root; e.target is retargeted.
+      const path = e.composedPath()
+      if (popoverRef.current && path.includes(popoverRef.current)) return
+      if (triggerRef.current && path.includes(triggerRef.current)) return
       close()
     }
     const onKey = (e: KeyboardEvent) => {
