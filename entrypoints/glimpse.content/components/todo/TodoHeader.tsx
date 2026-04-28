@@ -7,7 +7,13 @@ import {
   Sunrise,
   type LucideIcon
 } from "lucide-react"
-import { useCallback, useEffect, useRef, useState } from "react"
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState
+} from "react"
 
 import type { SystemView } from "~/lib/todos/types"
 
@@ -41,6 +47,7 @@ export function TodoHeader({
 }: TodoHeaderProps) {
   const reduced = usePrefersReducedMotion()
   const [open, setOpen] = useState(false)
+  const [coords, setCoords] = useState({ top: 0, left: 0 })
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const popoverRef = useRef<HTMLDivElement | null>(null)
 
@@ -48,6 +55,14 @@ export function TodoHeader({
   const ActiveIcon = active.Icon
 
   const close = useCallback(() => setOpen(false), [])
+
+  useLayoutEffect(() => {
+    if (!open) return
+    const trigger = triggerRef.current
+    if (!trigger) return
+    const rect = trigger.getBoundingClientRect()
+    setCoords({ top: rect.bottom + 4, left: rect.left })
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -92,7 +107,7 @@ export function TodoHeader({
 
   return (
     <header
-      className="relative flex h-11 shrink-0 items-center px-3"
+      className="flex h-11 shrink-0 items-center px-3"
       style={{
         borderBottom:
           theme === "dark"
@@ -150,16 +165,16 @@ export function TodoHeader({
                 : { duration: 0.14, ease: [0.4, 0, 1, 1] }
             }}
             style={{
-              position: "absolute",
-              top: 44,
-              left: 8,
+              position: "fixed",
+              top: coords.top,
+              left: coords.left,
               width: 240,
               backgroundColor: popoverBg,
               border: popoverBorder,
               borderRadius: 8,
               boxShadow: popoverShadow,
               padding: 4,
-              zIndex: 1,
+              zIndex: 2147483647,
               transformOrigin: "top left"
             }}>
             {SYSTEM_VIEW_META.map((view) => {
