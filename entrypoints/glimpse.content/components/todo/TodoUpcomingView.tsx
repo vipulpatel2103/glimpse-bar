@@ -11,6 +11,7 @@ interface TodoUpcomingViewProps {
   theme: "light" | "dark"
   onToggle: (id: string) => void
   onDelete: (id: string) => void
+  onSetDue: (id: string, dueAt: number | undefined) => void
 }
 
 export function TodoUpcomingView({
@@ -18,7 +19,8 @@ export function TodoUpcomingView({
   now,
   theme,
   onToggle,
-  onDelete
+  onDelete,
+  onSetDue
 }: TodoUpcomingViewProps) {
   if (groups.length === 0) {
     return (
@@ -57,9 +59,11 @@ export function TodoUpcomingView({
               <TodoRow
                 key={item.id}
                 item={item}
+                now={now}
                 theme={theme}
                 onToggle={onToggle}
                 onDelete={onDelete}
+                onSetDue={onSetDue}
               />
             ))}
           </div>

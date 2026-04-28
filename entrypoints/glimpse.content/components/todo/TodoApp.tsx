@@ -7,6 +7,7 @@ import {
   addTodo,
   ensureInbox,
   removeTodo,
+  setDueAt,
   toggleDone
 } from "~/lib/todos/mutations"
 import {
@@ -18,6 +19,7 @@ import {
 } from "~/lib/todos/selectors"
 import { isSystemView, type SystemView } from "~/lib/todos/types"
 
+import { useNowTick } from "../../hooks/useNowTick"
 import { useStorageItem } from "../../hooks/useStorageItem"
 
 import { TodoHeader } from "./TodoHeader"
@@ -55,9 +57,9 @@ export function TodoApp({ theme }: TodoAppProps) {
 
   const safeLists = useMemo(() => ensureInbox(lists), [lists])
 
-  // Step 4: live "now" is captured per render; selectors are pure & cheap.
-  // Step 5 adds the 60s rollover ticker so day boundaries flip without input.
-  const now = Date.now()
+  // Re-render every 60s so day-boundary rollovers (overdue → Today,
+  // Today → Upcoming) become visible without user interaction.
+  const now = useNowTick(60_000)
 
   const view: SystemView = isSystemView(todoUi.activeView)
     ? todoUi.activeView
@@ -65,8 +67,7 @@ export function TodoApp({ theme }: TodoAppProps) {
 
   const counts = useMemo(
     () => countByView(todos, safeLists, now),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [todos, safeLists]
+    [todos, safeLists, now]
   )
 
   const handleAdd = useCallback(
@@ -98,6 +99,13 @@ export function TodoApp({ theme }: TodoAppProps) {
     [todos, setTodos]
   )
 
+  const handleSetDue = useCallback(
+    (id: string, dueAt: number | undefined) => {
+      void setTodos(setDueAt(todos, id, dueAt))
+    },
+    [todos, setTodos]
+  )
+
   const handleChangeView = useCallback(
     (next: SystemView) => {
       void setTodoUi({ ...todoUi, activeView: next })
@@ -110,11 +118,13 @@ export function TodoApp({ theme }: TodoAppProps) {
     body = (
       <TodoListView
         items={selectToday(todos, now)}
+        now={now}
         emptyHint={EMPTY_HINTS.today.hint}
         EmptyIcon={EMPTY_HINTS.today.Icon}
         theme={theme}
         onToggle={handleToggle}
         onDelete={handleDelete}
+        onSetDue={handleSetDue}
       />
     )
   } else if (view === "upcoming") {
@@ -125,28 +135,33 @@ export function TodoApp({ theme }: TodoAppProps) {
         theme={theme}
         onToggle={handleToggle}
         onDelete={handleDelete}
+        onSetDue={handleSetDue}
       />
     )
   } else if (view === "inbox") {
     body = (
       <TodoListView
         items={selectInbox(todos)}
+        now={now}
         emptyHint={EMPTY_HINTS.inbox.hint}
         EmptyIcon={EMPTY_HINTS.inbox.Icon}
         theme={theme}
         onToggle={handleToggle}
         onDelete={handleDelete}
+        onSetDue={handleSetDue}
       />
     )
   } else {
     body = (
       <TodoListView
         items={selectCompletedAll(todos, safeLists, now)}
+        now={now}
         emptyHint={EMPTY_HINTS.completed.hint}
         EmptyIcon={EMPTY_HINTS.completed.Icon}
         theme={theme}
         onToggle={handleToggle}
         onDelete={handleDelete}
+        onSetDue={handleSetDue}
       />
     )
   }

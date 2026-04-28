@@ -6,20 +6,24 @@ import { TodoRow } from "./TodoRow"
 
 interface TodoListViewProps {
   items: TodoItem[]
+  now: number
   emptyHint: string
   EmptyIcon?: LucideIcon
   theme: "light" | "dark"
   onToggle: (id: string) => void
   onDelete: (id: string) => void
+  onSetDue: (id: string, dueAt: number | undefined) => void
 }
 
 export function TodoListView({
   items,
+  now,
   emptyHint,
   EmptyIcon,
   theme,
   onToggle,
-  onDelete
+  onDelete,
+  onSetDue
 }: TodoListViewProps) {
   if (items.length === 0) {
     return (
@@ -30,7 +34,10 @@ export function TodoListView({
             strokeWidth={1.5}
             aria-hidden="true"
             style={{
-              color: theme === "dark" ? "rgba(163,163,163,0.5)" : "rgba(115,115,115,0.5)"
+              color:
+                theme === "dark"
+                  ? "rgba(163,163,163,0.5)"
+                  : "rgba(115,115,115,0.5)"
             }}
           />
         ) : null}
@@ -49,9 +56,11 @@ export function TodoListView({
         <TodoRow
           key={item.id}
           item={item}
+          now={now}
           theme={theme}
           onToggle={onToggle}
           onDelete={onDelete}
+          onSetDue={onSetDue}
         />
       ))}
     </div>
