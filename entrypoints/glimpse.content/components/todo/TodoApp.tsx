@@ -1,44 +1,87 @@
-import { Sunrise } from "lucide-react"
+import { CalendarRange, CheckCheck, Inbox, Sunrise } from "lucide-react"
 import { useCallback, useMemo } from "react"
 
-import { listsItem, todosItem } from "~/lib/storage"
-import { startOfDay } from "~/lib/todos/dates"
+import { listsItem, todosItem, todoUiItem } from "~/lib/storage"
+import { addDays, startOfDay } from "~/lib/todos/dates"
 import {
   addTodo,
   ensureInbox,
   removeTodo,
   toggleDone
 } from "~/lib/todos/mutations"
-import { selectToday } from "~/lib/todos/selectors"
+import {
+  countByView,
+  selectCompletedAll,
+  selectInbox,
+  selectToday,
+  selectUpcoming
+} from "~/lib/todos/selectors"
+import { isSystemView, type SystemView } from "~/lib/todos/types"
 
 import { useStorageItem } from "../../hooks/useStorageItem"
 
 import { TodoHeader } from "./TodoHeader"
 import { TodoListView } from "./TodoListView"
 import { TodoNewRow } from "./TodoNewRow"
+import { TodoUpcomingView } from "./TodoUpcomingView"
 
 interface TodoAppProps {
   theme: "light" | "dark"
 }
 
+const EMPTY_HINTS: Record<SystemView, { hint: string; Icon: typeof Sunrise }> = {
+  today: {
+    hint: "Nothing scheduled for today. Type below to add a task.",
+    Icon: Sunrise
+  },
+  upcoming: {
+    hint: "Calendar's clear for the next week.",
+    Icon: CalendarRange
+  },
+  inbox: {
+    hint: "Inbox is empty. Capture something with right-click → Add selection as task.",
+    Icon: Inbox
+  },
+  completed: {
+    hint: "No tasks completed yet.",
+    Icon: CheckCheck
+  }
+}
+
 export function TodoApp({ theme }: TodoAppProps) {
   const [todos, setTodos] = useStorageItem(todosItem)
   const [lists] = useStorageItem(listsItem)
+  const [todoUi, setTodoUi] = useStorageItem(todoUiItem)
 
-  // Defensive — if user wiped storage, ensure Inbox always exists at read time.
   const safeLists = useMemo(() => ensureInbox(lists), [lists])
 
-  // Step 3: only the Today view is wired. Views switching arrives in Step 4;
-  // a 60s rollover ticker arrives in Step 5.
-  const visible = useMemo(() => selectToday(todos, Date.now()), [todos])
+  // Step 4: live "now" is captured per render; selectors are pure & cheap.
+  // Step 5 adds the 60s rollover ticker so day boundaries flip without input.
+  const now = Date.now()
+
+  const view: SystemView = isSystemView(todoUi.activeView)
+    ? todoUi.activeView
+    : "today"
+
+  const counts = useMemo(
+    () => countByView(todos, safeLists, now),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [todos, safeLists]
+  )
 
   const handleAdd = useCallback(
     (text: string) => {
-      const dueAt = startOfDay(Date.now())
+      // The "+ New task" footer is contextual: in Today / Upcoming we
+      // schedule today; in Inbox we leave dueAt empty; in Completed adding
+      // is disabled.
+      let dueAt: number | undefined
+      if (view === "today") dueAt = startOfDay(Date.now())
+      else if (view === "upcoming") dueAt = addDays(startOfDay(Date.now()), 1)
+      else dueAt = undefined
       const { items } = addTodo(todos, safeLists, { text, dueAt })
       void setTodos(items)
     },
-    [todos, safeLists, setTodos]
+    [todos, safeLists, setTodos, view]
   )
 
   const handleToggle = useCallback(
@@ -55,18 +98,75 @@ export function TodoApp({ theme }: TodoAppProps) {
     [todos, setTodos]
   )
 
-  return (
-    <div className="flex h-full flex-col">
-      <TodoHeader theme={theme} title="Today" />
+  const handleChangeView = useCallback(
+    (next: SystemView) => {
+      void setTodoUi({ ...todoUi, activeView: next })
+    },
+    [todoUi, setTodoUi]
+  )
+
+  let body
+  if (view === "today") {
+    body = (
       <TodoListView
-        items={visible}
-        emptyHint="Nothing scheduled for today. Type below to add a task."
-        EmptyIcon={Sunrise}
+        items={selectToday(todos, now)}
+        emptyHint={EMPTY_HINTS.today.hint}
+        EmptyIcon={EMPTY_HINTS.today.Icon}
         theme={theme}
         onToggle={handleToggle}
         onDelete={handleDelete}
       />
-      <TodoNewRow theme={theme} onSubmit={handleAdd} />
+    )
+  } else if (view === "upcoming") {
+    body = (
+      <TodoUpcomingView
+        groups={selectUpcoming(todos, now)}
+        now={now}
+        theme={theme}
+        onToggle={handleToggle}
+        onDelete={handleDelete}
+      />
+    )
+  } else if (view === "inbox") {
+    body = (
+      <TodoListView
+        items={selectInbox(todos)}
+        emptyHint={EMPTY_HINTS.inbox.hint}
+        EmptyIcon={EMPTY_HINTS.inbox.Icon}
+        theme={theme}
+        onToggle={handleToggle}
+        onDelete={handleDelete}
+      />
+    )
+  } else {
+    body = (
+      <TodoListView
+        items={selectCompletedAll(todos, safeLists, now)}
+        emptyHint={EMPTY_HINTS.completed.hint}
+        EmptyIcon={EMPTY_HINTS.completed.Icon}
+        theme={theme}
+        onToggle={handleToggle}
+        onDelete={handleDelete}
+      />
+    )
+  }
+
+  return (
+    <div className="flex h-full flex-col">
+      <TodoHeader
+        theme={theme}
+        activeView={view}
+        counts={counts}
+        onChangeView={handleChangeView}
+      />
+      {body}
+      {view !== "completed" ? (
+        <TodoNewRow
+          theme={theme}
+          placeholder={view === "inbox" ? "New task in Inbox" : "New task"}
+          onSubmit={handleAdd}
+        />
+      ) : null}
     </div>
   )
 }
