@@ -1,6 +1,7 @@
 import { Calendar, CalendarOff, Sun, Trash2 } from "lucide-react"
 import {
   useCallback,
+  useEffect,
   useRef,
   useState,
   type KeyboardEvent
@@ -18,6 +19,7 @@ interface TodoRowProps {
   onToggle: (id: string) => void
   onDelete: (id: string) => void
   onSetDue: (id: string, dueAt: number | undefined) => void
+  onUpdateText: (id: string, text: string) => void
 }
 
 function DayChip({
@@ -108,19 +110,79 @@ export function TodoRow({
   theme,
   onToggle,
   onDelete,
-  onSetDue
+  onSetDue,
+  onUpdateText
 }: TodoRowProps) {
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(item.text)
   const calendarBtnRef = useRef<HTMLButtonElement | null>(null)
+  const editInputRef = useRef<HTMLInputElement | null>(null)
+  // Lets blur tell apart "user committed via Enter/Esc" (handled already)
+  // from "user clicked away" (still needs commit).
+  const skipBlurRef = useRef(false)
+
+  // Refresh draft if the row's text changes externally (e.g. cross-tab sync).
+  useEffect(() => {
+    if (!editing) setDraft(item.text)
+  }, [item.text, editing])
+
+  const startEdit = useCallback(() => {
+    if (item.done) return
+    setDraft(item.text)
+    setEditing(true)
+  }, [item.text, item.done])
+
+  const commitEdit = useCallback(() => {
+    const trimmed = draft.trim()
+    setEditing(false)
+    if (!trimmed) {
+      onDelete(item.id)
+      return
+    }
+    if (trimmed !== item.text) onUpdateText(item.id, trimmed)
+  }, [draft, item.id, item.text, onDelete, onUpdateText])
+
+  const cancelEdit = useCallback(() => {
+    skipBlurRef.current = true
+    setEditing(false)
+    setDraft(item.text)
+  }, [item.text])
+
+  const handleEditKey = useCallback(
+    (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault()
+        skipBlurRef.current = true
+        commitEdit()
+      } else if (e.key === "Escape") {
+        e.preventDefault()
+        cancelEdit()
+      }
+    },
+    [commitEdit, cancelEdit]
+  )
+
+  const handleEditBlur = useCallback(() => {
+    if (skipBlurRef.current) {
+      skipBlurRef.current = false
+      return
+    }
+    commitEdit()
+  }, [commitEdit])
 
   const handleKey = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === "Backspace" || e.key === "Delete") {
+      if (editing) return
+      if (e.key === "Enter" || e.key === "F2" || e.key === "e") {
+        e.preventDefault()
+        startEdit()
+      } else if (e.key === "Backspace" || e.key === "Delete") {
         e.preventDefault()
         onDelete(item.id)
       }
     },
-    [item.id, onDelete]
+    [editing, item.id, onDelete, startEdit]
   )
 
   const handleScheduleToday = useCallback(() => {
@@ -140,7 +202,7 @@ export function TodoRow({
         tabIndex={0}
         onKeyDown={handleKey}
         className={
-          "group flex h-8 items-center gap-2 rounded px-2 " +
+          "group relative flex h-8 items-center gap-2 rounded px-2 " +
           "hover:bg-black/[0.04] dark:hover:bg-white/[0.06] " +
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         }>
@@ -183,33 +245,64 @@ export function TodoRow({
             </svg>
           ) : null}
         </button>
-        <span
-          className={
-            "flex-1 truncate text-[13px] leading-tight transition-opacity duration-200 " +
-            (item.done ? "line-through opacity-50" : "")
-          }>
-          {item.text}
-        </span>
+        {editing ? (
+          <input
+            ref={editInputRef}
+            autoFocus
+            type="text"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={handleEditKey}
+            onBlur={handleEditBlur}
+            onClick={(e) => e.stopPropagation()}
+            aria-label="Edit task"
+            className={
+              "h-5 flex-1 bg-transparent text-[13px] leading-tight " +
+              "focus:outline-none"
+            }
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={startEdit}
+            disabled={item.done}
+            title={item.done ? undefined : "Click to edit"}
+            className={
+              "min-w-0 truncate text-left text-[13px] leading-tight " +
+              "transition-opacity duration-200 cursor-text shrink " +
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded " +
+              (item.done ? "line-through opacity-50 cursor-default" : "")
+            }
+            style={{ flex: "0 1 auto" }}>
+            {item.text}
+          </button>
+        )}
         {item.dueAt !== undefined ? (
           <DayChip dueAt={item.dueAt} now={now} theme={theme} />
         ) : null}
+        {/* Spacer pushes hover-actions to the right edge while keeping
+            the day chip immediately adjacent to the task text. */}
+        <div className="flex-1" />
         <div
           className={
             "flex items-center gap-0.5 transition-opacity duration-100 " +
             "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
           }>
-          <HoverIconButton
-            label="Schedule for today"
-            Icon={Sun}
-            onClick={handleScheduleToday}
-            theme={theme}
-          />
-          <HoverIconButton
-            label="Remove date"
-            Icon={CalendarOff}
-            onClick={handleRemoveDate}
-            theme={theme}
-          />
+          {item.dueAt === undefined ? (
+            <HoverIconButton
+              label="Schedule for today"
+              Icon={Sun}
+              onClick={handleScheduleToday}
+              theme={theme}
+            />
+          ) : (
+            <HoverIconButton
+              label="Remove date"
+              Icon={CalendarOff}
+              onClick={handleRemoveDate}
+              theme={theme}
+            />
+          )}
           <HoverIconButton
             label="Pick a date"
             Icon={Calendar}

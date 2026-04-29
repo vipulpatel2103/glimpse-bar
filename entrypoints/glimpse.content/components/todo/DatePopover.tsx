@@ -25,6 +25,7 @@ import {
 } from "~/lib/todos/dates"
 
 import { usePrefersReducedMotion } from "../../hooks/useTheme"
+import { PopoverPortal } from "../PopoverPortal"
 
 interface DatePopoverProps {
   open: boolean
@@ -79,6 +80,7 @@ export function DatePopover({
 }: DatePopoverProps) {
   const reduced = usePrefersReducedMotion()
   const popoverRef = useRef<HTMLDivElement | null>(null)
+  const nativePickerRef = useRef<HTMLInputElement | null>(null)
   const [coords, setCoords] = useState({ top: 0, left: 0 })
 
   useLayoutEffect(() => {
@@ -86,31 +88,12 @@ export function DatePopover({
     const anchor = anchorRef.current
     if (!anchor) return
     const rect = anchor.getBoundingClientRect()
-    // The panel's motion.div carries a non-none transform (framer-motion's
-    // residual translate/scale). CSS contains position:fixed descendants
-    // inside any transformed ancestor, so the popover's "viewport" coords
-    // get re-interpreted as panel-relative and would land off-screen.
-    // Compensate by subtracting the transformed ancestor's bbox.
-    let offsetTop = 0
-    let offsetLeft = 0
-    let walker: HTMLElement | null = anchor.parentElement
-    while (walker) {
-      const cs = window.getComputedStyle(walker)
-      if (
-        cs.transform !== "none" ||
-        cs.perspective !== "none" ||
-        cs.filter !== "none"
-      ) {
-        const cb = walker.getBoundingClientRect()
-        offsetTop = cb.top
-        offsetLeft = cb.left
-        break
-      }
-      walker = walker.parentElement
-    }
-    let left = rect.right - POPOVER_WIDTH - offsetLeft
-    if (left < 8 - offsetLeft) left = 8 - offsetLeft
-    setCoords({ top: rect.bottom + 4 - offsetTop, left })
+    // Popover renders into the PopoverPortal target (sibling of the
+    // panel motion.div), so it escapes the panel's transform + overflow
+    // clip. Viewport coordinates apply directly; no compensation needed.
+    let left = rect.right - POPOVER_WIDTH
+    if (left < 8) left = 8
+    setCoords({ top: rect.bottom + 4, left })
   }, [open, anchorRef])
 
   useEffect(() => {
@@ -173,6 +156,7 @@ export function DatePopover({
   const mutedColor = theme === "dark" ? "#a3a3a3" : "#737373"
 
   return (
+    <PopoverPortal>
     <AnimatePresence>
       {open && (
         <motion.div
@@ -232,22 +216,53 @@ export function DatePopover({
             className="my-1"
             style={{ height: 1, backgroundColor: dividerColor }}
           />
-          <label
+          <button
+            type="button"
+            onClick={() => {
+              const el = nativePickerRef.current
+              if (!el) return
+              // showPicker() is the only reliable way to open the
+              // native date picker on click in Chromium. Falls back to
+              // .focus() (which opens the picker on Firefox).
+              if (typeof el.showPicker === "function") {
+                try {
+                  el.showPicker()
+                } catch {
+                  el.focus()
+                }
+              } else {
+                el.focus()
+              }
+            }}
             className={
               "flex w-full items-center gap-2 rounded px-2 py-1.5 " +
-              "hover:bg-black/[0.04] dark:hover:bg-white/[0.06] cursor-pointer"
+              "hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
             }>
             <Calendar size={14} strokeWidth={2} aria-hidden="true" />
-            <span className="flex-1 text-[13px] leading-tight">Pick date…</span>
-            <input
-              type="date"
-              defaultValue={currentDueAt ? toDateInputValue(currentDueAt) : undefined}
-              min={toDateInputValue(Date.now())}
-              onChange={(e) => handleNativeChange(e.target.value)}
-              className="bg-transparent text-[12px] focus:outline-none"
-              style={{ color: mutedColor }}
-            />
-          </label>
+            <span className="flex-1 text-left text-[13px] leading-tight">
+              Pick date…
+            </span>
+          </button>
+          <input
+            ref={nativePickerRef}
+            type="date"
+            defaultValue={
+              currentDueAt ? toDateInputValue(currentDueAt) : undefined
+            }
+            min={toDateInputValue(Date.now())}
+            onChange={(e) => handleNativeChange(e.target.value)}
+            // Hidden but reachable; showPicker() needs the element to be
+            // present in the DOM, but it doesn't need to be visible.
+            style={{
+              position: "absolute",
+              width: 0,
+              height: 0,
+              opacity: 0,
+              pointerEvents: "none"
+            }}
+            tabIndex={-1}
+            aria-hidden="true"
+          />
           {currentDueAt !== undefined && (
             <>
               <div
@@ -270,5 +285,6 @@ export function DatePopover({
         </motion.div>
       )}
     </AnimatePresence>
+    </PopoverPortal>
   )
 }

@@ -6,6 +6,7 @@ import {
   activeAppItem,
   edgeItem,
   positionItem,
+  todoUiItem,
   transparencyItem,
   type Edge,
   type Position
@@ -13,6 +14,7 @@ import {
 
 import { GlimpseBar } from "./components/GlimpseBar"
 import { GlimpsePanel } from "./components/GlimpsePanel"
+import { PopoverPortalProvider } from "./components/PopoverPortal"
 import { useStorageItem } from "./hooks/useStorageItem"
 import { useTheme } from "./hooks/useTheme"
 
@@ -55,6 +57,7 @@ export default function App() {
   const [edge, setEdge] = useStorageItem(edgeItem)
   const [transparency] = useStorageItem(transparencyItem)
   const [activeAppId, setActiveAppId] = useStorageItem(activeAppItem)
+  const [todoUi] = useStorageItem(todoUiItem)
 
   // First render uses fallback {0,0}; convert to right-center if still at origin.
   const displayPosition: Position =
@@ -90,21 +93,27 @@ export default function App() {
 
   return (
     <div className={theme === "dark" ? "dark" : ""}>
-      <GlimpseBar
-        position={displayPosition}
-        edge={edge}
-        transparency={transparency}
-        theme={theme}
-        activeApp={activeAppId}
-        onCommitPosition={onCommitPosition}
-        onActivateApp={onActivateApp}
-      />
-      <GlimpsePanel
-        app={activeApp}
-        edge={edge}
-        theme={theme}
-        onClose={onClosePanel}
-      />
+      <PopoverPortalProvider>
+        <GlimpseBar
+          position={displayPosition}
+          edge={edge}
+          transparency={transparency}
+          theme={theme}
+          activeApp={activeAppId}
+          onCommitPosition={onCommitPosition}
+          onActivateApp={onActivateApp}
+        />
+        <GlimpsePanel
+          app={activeApp}
+          edge={edge}
+          theme={theme}
+          // Pin and expanded only apply to the TODO app for now; other apps
+          // ignore the flags.
+          pinned={activeApp?.id === "todo" && todoUi.pinned}
+          expanded={activeApp?.id === "todo" && todoUi.expanded}
+          onClose={onClosePanel}
+        />
+      </PopoverPortalProvider>
     </div>
   )
 }

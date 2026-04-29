@@ -1,37 +1,82 @@
-import { CalendarRange, CheckCheck, Inbox, Sunrise } from "lucide-react"
-import { useCallback, useMemo } from "react"
+import {
+  CalendarRange,
+  CheckCheck,
+  Inbox as InboxIcon,
+  List as ListIcon,
+  MoreHorizontal,
+  Sunrise
+} from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { listsItem, todosItem, todoUiItem } from "~/lib/storage"
 import { addDays, startOfDay } from "~/lib/todos/dates"
 import {
+  addList as addListM,
   addTodo,
   ensureInbox,
+  removeList as removeListM,
   removeTodo,
+  renameList as renameListM,
   setDueAt,
-  toggleDone
+  toggleDone,
+  updateListConfig,
+  updateTodo
 } from "~/lib/todos/mutations"
 import {
   countByView,
   selectCompletedAll,
   selectInbox,
+  selectList,
   selectToday,
   selectUpcoming
 } from "~/lib/todos/selectors"
-import { isSystemView, type SystemView } from "~/lib/todos/types"
+import {
+  INBOX_LIST_ID,
+  isSystemView,
+  type ListId,
+  type ListMeta,
+  type NewTaskPosition,
+  type ShowCompletedWindow,
+  type SortMode,
+  type SystemView
+} from "~/lib/todos/types"
 
 import { useNowTick } from "../../hooks/useNowTick"
 import { useStorageItem } from "../../hooks/useStorageItem"
+import { useViewportWidth } from "../../hooks/useViewportWidth"
 
+import { ListConfigMenu } from "./ListConfigMenu"
 import { TodoHeader } from "./TodoHeader"
 import { TodoListView } from "./TodoListView"
 import { TodoNewRow } from "./TodoNewRow"
+import { TodoSidebar } from "./TodoSidebar"
 import { TodoUpcomingView } from "./TodoUpcomingView"
+
+const EXPAND_BREAKPOINT = 720
+const LINGER_MS = 1500
+
+function withLingering(
+  baseItems: import("~/lib/todos/types").TodoItem[],
+  allItems: import("~/lib/todos/types").TodoItem[],
+  lingeringIds: Set<string>
+): import("~/lib/todos/types").TodoItem[] {
+  if (lingeringIds.size === 0) return baseItems
+  const baseIds = new Set(baseItems.map((i) => i.id))
+  const extras = allItems.filter(
+    (t) => lingeringIds.has(t.id) && !baseIds.has(t.id) && !t.parentId
+  )
+  if (extras.length === 0) return baseItems
+  return [...baseItems, ...extras]
+}
 
 interface TodoAppProps {
   theme: "light" | "dark"
 }
 
-const EMPTY_HINTS: Record<SystemView, { hint: string; Icon: typeof Sunrise }> = {
+const SYSTEM_EMPTY: Record<
+  SystemView,
+  { hint: string; Icon: typeof Sunrise }
+> = {
   today: {
     hint: "Nothing scheduled for today. Type below to add a task.",
     Icon: Sunrise
@@ -42,7 +87,7 @@ const EMPTY_HINTS: Record<SystemView, { hint: string; Icon: typeof Sunrise }> = 
   },
   inbox: {
     hint: "Inbox is empty. Capture something with right-click → Add selection as task.",
-    Icon: Inbox
+    Icon: InboxIcon
   },
   completed: {
     hint: "No tasks completed yet.",
@@ -50,36 +95,94 @@ const EMPTY_HINTS: Record<SystemView, { hint: string; Icon: typeof Sunrise }> = 
   }
 }
 
+function resolveActiveListId(
+  activeView: SystemView | ListId,
+  lists: ListMeta[]
+): ListId | null {
+  if (isSystemView(activeView)) {
+    if (activeView === "inbox") return INBOX_LIST_ID
+    return null
+  }
+  return lists.find((l) => l.id === activeView)?.id ?? null
+}
+
 export function TodoApp({ theme }: TodoAppProps) {
   const [todos, setTodos] = useStorageItem(todosItem)
-  const [lists] = useStorageItem(listsItem)
+  const [lists, setLists] = useStorageItem(listsItem)
   const [todoUi, setTodoUi] = useStorageItem(todoUiItem)
 
   const safeLists = useMemo(() => ensureInbox(lists), [lists])
-
-  // Re-render every 60s so day-boundary rollovers (overdue → Today,
-  // Today → Upcoming) become visible without user interaction.
   const now = useNowTick(60_000)
+  const vw = useViewportWidth()
+  const canExpand = vw >= EXPAND_BREAKPOINT
+  const expanded = todoUi.expanded && canExpand
 
-  const view: SystemView = isSystemView(todoUi.activeView)
+  // After a date mutation the row may no longer match the active view's
+  // selector. Keep it visible for LINGER_MS so the user sees their action
+  // take effect before the row migrates to its new bucket.
+  const [lingeringIds, setLingeringIds] = useState<Set<string>>(new Set())
+  const lingerTimers = useRef<Map<string, number>>(new Map())
+
+  const lingerForView = useCallback((id: string) => {
+    setLingeringIds((prev) => {
+      const next = new Set(prev)
+      next.add(id)
+      return next
+    })
+    const existing = lingerTimers.current.get(id)
+    if (existing !== undefined) window.clearTimeout(existing)
+    const handle = window.setTimeout(() => {
+      setLingeringIds((prev) => {
+        if (!prev.has(id)) return prev
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+      lingerTimers.current.delete(id)
+    }, LINGER_MS)
+    lingerTimers.current.set(id, handle)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      lingerTimers.current.forEach((h) => window.clearTimeout(h))
+      lingerTimers.current.clear()
+    }
+  }, [])
+
+  const view: SystemView | ListId = isSystemView(todoUi.activeView)
     ? todoUi.activeView
-    : "today"
+    : safeLists.some((l) => l.id === todoUi.activeView)
+      ? (todoUi.activeView as ListId)
+      : "today"
 
   const counts = useMemo(
     () => countByView(todos, safeLists, now),
     [todos, safeLists, now]
   )
 
+  const activeListId = resolveActiveListId(view, safeLists)
+  const activeList = activeListId
+    ? safeLists.find((l) => l.id === activeListId)
+    : undefined
+  const isCustomListView = !isSystemView(view) && activeList !== undefined
+
   const handleAdd = useCallback(
     (text: string) => {
-      // The "+ New task" footer is contextual: in Today / Upcoming we
-      // schedule today; in Inbox we leave dueAt empty; in Completed adding
-      // is disabled.
+      // Contextual due-date defaults so the new row appears in the active view.
       let dueAt: number | undefined
-      if (view === "today") dueAt = startOfDay(Date.now())
-      else if (view === "upcoming") dueAt = addDays(startOfDay(Date.now()), 1)
-      else dueAt = undefined
-      const { items } = addTodo(todos, safeLists, { text, dueAt })
+      let listId: ListId | undefined
+      if (isSystemView(view)) {
+        if (view === "today") dueAt = startOfDay(Date.now())
+        else if (view === "upcoming")
+          dueAt = addDays(startOfDay(Date.now()), 1)
+        else dueAt = undefined
+        listId = INBOX_LIST_ID
+      } else {
+        dueAt = undefined
+        listId = view
+      }
+      const { items } = addTodo(todos, safeLists, { text, dueAt, listId })
       void setTodos(items)
     },
     [todos, safeLists, setTodos, view]
@@ -102,86 +205,279 @@ export function TodoApp({ theme }: TodoAppProps) {
   const handleSetDue = useCallback(
     (id: string, dueAt: number | undefined) => {
       void setTodos(setDueAt(todos, id, dueAt))
+      lingerForView(id)
+    },
+    [todos, setTodos, lingerForView]
+  )
+
+  const handleUpdateText = useCallback(
+    (id: string, text: string) => {
+      void setTodos(updateTodo(todos, id, { text }))
     },
     [todos, setTodos]
   )
 
   const handleChangeView = useCallback(
-    (next: SystemView) => {
+    (next: SystemView | ListId) => {
       void setTodoUi({ ...todoUi, activeView: next })
     },
     [todoUi, setTodoUi]
   )
 
+  // ── List CRUD ──
+  const handleCreateList = useCallback(
+    (name: string) => {
+      const { lists: nextLists, created } = addListM(safeLists, name)
+      void setLists(nextLists)
+      void setTodoUi({ ...todoUi, activeView: created.id })
+    },
+    [safeLists, setLists, todoUi, setTodoUi]
+  )
+
+  const handleRenameList = useCallback(
+    (id: ListId, name: string) => {
+      void setLists(renameListM(safeLists, id, name))
+    },
+    [safeLists, setLists]
+  )
+
+  const handleRemoveList = useCallback(
+    (id: ListId) => {
+      const { lists: nextLists, items: nextItems } = removeListM(
+        safeLists,
+        todos,
+        id
+      )
+      void setLists(nextLists)
+      void setTodos(nextItems)
+      // If the deleted list was active, fall back to Today.
+      if (todoUi.activeView === id) {
+        void setTodoUi({ ...todoUi, activeView: "today" })
+      }
+    },
+    [safeLists, todos, setLists, setTodos, todoUi, setTodoUi]
+  )
+
+  // ── List config ──
+  const handleChangeSort = useCallback(
+    (mode: SortMode) => {
+      if (!activeListId) return
+      void setLists(updateListConfig(safeLists, activeListId, { sort: mode }))
+    },
+    [safeLists, activeListId, setLists]
+  )
+
+  const handleChangeNewTaskPosition = useCallback(
+    (pos: NewTaskPosition) => {
+      if (!activeListId) return
+      void setLists(
+        updateListConfig(safeLists, activeListId, { newTaskPosition: pos })
+      )
+    },
+    [safeLists, activeListId, setLists]
+  )
+
+  const handleChangeShowCompleted = useCallback(
+    (window: ShowCompletedWindow) => {
+      if (!activeListId) return
+      void setLists(
+        updateListConfig(safeLists, activeListId, { showCompleted: window })
+      )
+    },
+    [safeLists, activeListId, setLists]
+  )
+
+  const handleTogglePinned = useCallback(
+    (next: boolean) => {
+      void setTodoUi({ ...todoUi, pinned: next })
+    },
+    [todoUi, setTodoUi]
+  )
+
+  const handleToggleExpanded = useCallback(() => {
+    void setTodoUi({ ...todoUi, expanded: !todoUi.expanded })
+  }, [todoUi, setTodoUi])
+
+  // ── Body render ──
   let body
-  if (view === "today") {
-    body = (
-      <TodoListView
-        items={selectToday(todos, now)}
-        now={now}
-        emptyHint={EMPTY_HINTS.today.hint}
-        EmptyIcon={EMPTY_HINTS.today.Icon}
-        theme={theme}
-        onToggle={handleToggle}
-        onDelete={handleDelete}
-        onSetDue={handleSetDue}
-      />
-    )
-  } else if (view === "upcoming") {
-    body = (
-      <TodoUpcomingView
-        groups={selectUpcoming(todos, now)}
-        now={now}
-        theme={theme}
-        onToggle={handleToggle}
-        onDelete={handleDelete}
-        onSetDue={handleSetDue}
-      />
-    )
-  } else if (view === "inbox") {
-    body = (
-      <TodoListView
-        items={selectInbox(todos)}
-        now={now}
-        emptyHint={EMPTY_HINTS.inbox.hint}
-        EmptyIcon={EMPTY_HINTS.inbox.Icon}
-        theme={theme}
-        onToggle={handleToggle}
-        onDelete={handleDelete}
-        onSetDue={handleSetDue}
-      />
-    )
+  if (isSystemView(view)) {
+    if (view === "today") {
+      body = (
+        <TodoListView
+          items={withLingering(selectToday(todos, now), todos, lingeringIds)}
+          now={now}
+          emptyHint={SYSTEM_EMPTY.today.hint}
+          EmptyIcon={SYSTEM_EMPTY.today.Icon}
+          theme={theme}
+          onToggle={handleToggle}
+          onDelete={handleDelete}
+          onSetDue={handleSetDue}
+          onUpdateText={handleUpdateText}
+        />
+      )
+    } else if (view === "upcoming") {
+      body = (
+        <TodoUpcomingView
+          groups={selectUpcoming(todos, now)}
+          now={now}
+          theme={theme}
+          onToggle={handleToggle}
+          onDelete={handleDelete}
+          onSetDue={handleSetDue}
+          onUpdateText={handleUpdateText}
+        />
+      )
+    } else if (view === "inbox") {
+      body = (
+        <TodoListView
+          items={withLingering(selectInbox(todos), todos, lingeringIds)}
+          now={now}
+          emptyHint={SYSTEM_EMPTY.inbox.hint}
+          EmptyIcon={SYSTEM_EMPTY.inbox.Icon}
+          theme={theme}
+          onToggle={handleToggle}
+          onDelete={handleDelete}
+          onSetDue={handleSetDue}
+          onUpdateText={handleUpdateText}
+        />
+      )
+    } else {
+      body = (
+        <TodoListView
+          items={withLingering(
+            selectCompletedAll(todos, safeLists, now),
+            todos,
+            lingeringIds
+          )}
+          now={now}
+          emptyHint={SYSTEM_EMPTY.completed.hint}
+          EmptyIcon={SYSTEM_EMPTY.completed.Icon}
+          theme={theme}
+          onToggle={handleToggle}
+          onDelete={handleDelete}
+          onSetDue={handleSetDue}
+          onUpdateText={handleUpdateText}
+        />
+      )
+    }
   } else {
     body = (
       <TodoListView
-        items={selectCompletedAll(todos, safeLists, now)}
+        items={withLingering(
+          selectList(todos, view, activeList),
+          todos,
+          lingeringIds
+        )}
         now={now}
-        emptyHint={EMPTY_HINTS.completed.hint}
-        EmptyIcon={EMPTY_HINTS.completed.Icon}
+        emptyHint="No tasks here yet. Type below to add one."
+        EmptyIcon={ListIcon}
         theme={theme}
         onToggle={handleToggle}
         onDelete={handleDelete}
         onSetDue={handleSetDue}
+        onUpdateText={handleUpdateText}
       />
     )
   }
 
-  return (
-    <div className="flex h-full flex-col">
+  // Footer ⋯
+  const footerMoreRef = useRef<HTMLButtonElement | null>(null)
+  const [configOpen, setConfigOpen] = useState(false)
+  const mutedColor = theme === "dark" ? "#a3a3a3" : "#737373"
+
+  const showFooter = view !== "completed"
+
+  const mainPane = (
+    <div className="flex flex-1 min-w-0 flex-col">
       <TodoHeader
         theme={theme}
         activeView={view}
+        lists={safeLists}
         counts={counts}
+        expanded={expanded}
+        canExpand={canExpand}
+        onToggleExpanded={handleToggleExpanded}
         onChangeView={handleChangeView}
+        onCreateList={handleCreateList}
+        onRenameList={handleRenameList}
+        onRemoveList={handleRemoveList}
       />
       {body}
-      {view !== "completed" ? (
-        <TodoNewRow
+      {showFooter ? (
+        <div
+          className="flex shrink-0 items-stretch"
+          style={{
+            borderTop:
+              theme === "dark"
+                ? "1px solid rgba(255,255,255,0.06)"
+                : "1px solid rgba(0,0,0,0.06)"
+          }}>
+          <div className="flex-1">
+            <TodoNewRow
+              theme={theme}
+              placeholder={
+                isCustomListView
+                  ? `New task in ${activeList?.name ?? "list"}`
+                  : view === "inbox"
+                    ? "New task in Inbox"
+                    : "New task"
+              }
+              onSubmit={handleAdd}
+              borderless
+            />
+          </div>
+          <button
+            ref={footerMoreRef}
+            type="button"
+            aria-label="List settings"
+            title="List settings"
+            onClick={() => setConfigOpen((v) => !v)}
+            className={
+              "flex w-9 items-center justify-center " +
+              "hover:bg-black/[0.04] dark:hover:bg-white/[0.06] " +
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            }
+            style={{ color: mutedColor }}>
+            <MoreHorizontal size={14} strokeWidth={2} aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
+    </div>
+  )
+
+  return (
+    <div className="flex h-full">
+      {expanded ? (
+        <TodoSidebar
           theme={theme}
-          placeholder={view === "inbox" ? "New task in Inbox" : "New task"}
-          onSubmit={handleAdd}
+          activeView={view}
+          lists={safeLists}
+          counts={counts}
+          onChangeView={handleChangeView}
+          onCreateList={handleCreateList}
+          onRenameList={handleRenameList}
+          onRemoveList={handleRemoveList}
         />
       ) : null}
+      {mainPane}
+      <ListConfigMenu
+        open={configOpen}
+        onClose={() => setConfigOpen(false)}
+        anchorRef={footerMoreRef}
+        theme={theme}
+        sort={isCustomListView ? activeList?.sort : undefined}
+        newTaskPosition={
+          isCustomListView ? activeList?.newTaskPosition : undefined
+        }
+        showCompleted={
+          isCustomListView ? activeList?.showCompleted : undefined
+        }
+        onChangeSort={handleChangeSort}
+        onChangeNewTaskPosition={handleChangeNewTaskPosition}
+        onChangeShowCompleted={handleChangeShowCompleted}
+        pinned={todoUi.pinned}
+        onTogglePinned={handleTogglePinned}
+      />
     </div>
   )
 }

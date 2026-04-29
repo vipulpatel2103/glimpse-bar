@@ -6,12 +6,15 @@ interface TodoNewRowProps {
   /** Optional placeholder override (e.g. "+ New subtask"). */
   placeholder?: string
   onSubmit: (text: string) => void
+  /** When true, suppress the row's own borderTop (caller owns the border). */
+  borderless?: boolean
 }
 
 export function TodoNewRow({
   theme,
   placeholder = "New task",
-  onSubmit
+  onSubmit,
+  borderless = false
 }: TodoNewRowProps) {
   const [value, setValue] = useState("")
 
@@ -40,8 +43,9 @@ export function TodoNewRow({
     <div
       className="flex h-9 shrink-0 items-center gap-2 px-3"
       style={{
-        borderTop:
-          theme === "dark"
+        borderTop: borderless
+          ? undefined
+          : theme === "dark"
             ? "1px solid rgba(255,255,255,0.06)"
             : "1px solid rgba(0,0,0,0.06)"
       }}>

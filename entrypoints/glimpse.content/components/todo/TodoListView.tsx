@@ -13,6 +13,7 @@ interface TodoListViewProps {
   onToggle: (id: string) => void
   onDelete: (id: string) => void
   onSetDue: (id: string, dueAt: number | undefined) => void
+  onUpdateText: (id: string, text: string) => void
 }
 
 export function TodoListView({
@@ -23,7 +24,8 @@ export function TodoListView({
   theme,
   onToggle,
   onDelete,
-  onSetDue
+  onSetDue,
+  onUpdateText
 }: TodoListViewProps) {
   if (items.length === 0) {
     return (
@@ -61,6 +63,7 @@ export function TodoListView({
           onToggle={onToggle}
           onDelete={onDelete}
           onSetDue={onSetDue}
+          onUpdateText={onUpdateText}
         />
       ))}
     </div>

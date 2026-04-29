@@ -127,6 +127,26 @@ edge === 'right' ? { right: 0, top: y } : { left: 0, top: y }
 { left: 0, top: 0, transform: `translate3d(${x}px, ${y}px, 0)` }
 ```
 
+### `crypto.randomUUID()` is secure-context-only — content scripts inherit the host's context
+
+`crypto.randomUUID()` is exposed only in **Secure Contexts**. For content scripts, the *host page's* origin defines the security context — not the extension. So a TODO panel rendered on `http://anysite.com` will throw `TypeError: crypto.randomUUID is not a function`, while the same code works on `https://`, `localhost`, or `chrome-extension://` URLs (which is why `pnpm dev` rarely surfaces it).
+
+`crypto.getRandomValues()` does **not** require a secure context. Use it to build a v4 UUID by hand whenever an ID needs to work on arbitrary host pages:
+
+```ts
+function uid() {
+  if (typeof crypto?.randomUUID === 'function') return crypto.randomUUID()
+  const b = new Uint8Array(16)
+  crypto.getRandomValues(b)
+  b[6] = (b[6] & 0x0f) | 0x40   // v4
+  b[8] = (b[8] & 0x3f) | 0x80   // variant
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('')
+  return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`
+}
+```
+
+The same caveat applies to anything else gated on Secure Context (e.g. `navigator.clipboard`, `SubtleCrypto`).
+
 ### `position: fixed` is captured by the panel's `transform`
 
 The Glimpse Panel motion.div carries a non-`none` `transform` (framer-motion's residual `translate` / `scale` after the open animation). CSS spec: any `position: fixed` descendant of an ancestor with `transform`, `perspective`, or `filter` set to anything other than `none` becomes positioned relative to **that ancestor**, not the viewport. Coords from `getBoundingClientRect()` are viewport-relative — applying them as `top` / `left` on a fixed-positioned popover inside the panel renders the popover off-screen.

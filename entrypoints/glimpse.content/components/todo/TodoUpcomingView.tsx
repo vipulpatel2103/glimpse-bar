@@ -12,6 +12,7 @@ interface TodoUpcomingViewProps {
   onToggle: (id: string) => void
   onDelete: (id: string) => void
   onSetDue: (id: string, dueAt: number | undefined) => void
+  onUpdateText: (id: string, text: string) => void
 }
 
 export function TodoUpcomingView({
@@ -20,7 +21,8 @@ export function TodoUpcomingView({
   theme,
   onToggle,
   onDelete,
-  onSetDue
+  onSetDue,
+  onUpdateText
 }: TodoUpcomingViewProps) {
   if (groups.length === 0) {
     return (
@@ -64,6 +66,7 @@ export function TodoUpcomingView({
                 onToggle={onToggle}
                 onDelete={onDelete}
                 onSetDue={onSetDue}
+                onUpdateText={onUpdateText}
               />
             ))}
           </div>

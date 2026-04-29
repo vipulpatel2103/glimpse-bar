@@ -3,32 +3,54 @@ import { X } from "lucide-react"
 import { useEffect, useRef, type CSSProperties } from "react"
 
 import type { AppDefinition } from "~/lib/apps/types"
-import { BAR_WIDTH, PANEL_GAP, PANEL_WIDTH, type Edge } from "~/lib/storage"
+import {
+  BAR_WIDTH,
+  PANEL_GAP,
+  PANEL_WIDTH,
+  PANEL_WIDTH_EXPANDED,
+  type Edge
+} from "~/lib/storage"
 
 import { usePrefersReducedMotion } from "../hooks/useTheme"
+import { useViewportWidth } from "../hooks/useViewportWidth"
 import { TodoApp } from "./todo/TodoApp"
 
 interface GlimpsePanelProps {
   app: AppDefinition | null
   edge: Edge
   theme: "light" | "dark"
+  /**
+   * When true, outside-click no longer dismisses the panel. ESC and the
+   * close button still work. Driven by the TODO app's "Pin panel" toggle.
+   */
+  pinned?: boolean
+  /**
+   * When true, the panel widens to ~720px and the active app may render
+   * a sidebar. Falls back to compact when the viewport can't fit it.
+   */
+  expanded?: boolean
   onClose: () => void
 }
 
-const panelStyle = (edge: Edge, theme: "light" | "dark"): CSSProperties => {
-  // Use document layout viewport so we don't sit under page scrollbars.
-  const vw =
-    typeof document !== "undefined"
-      ? document.documentElement.clientWidth
-      : 1024
-  const width = Math.min(PANEL_WIDTH, Math.max(240, vw - 80))
+const EXPAND_BREAKPOINT = 720
+
+function compactWidthFor(vw: number): number {
+  return Math.min(PANEL_WIDTH, Math.max(240, vw - 80))
+}
+
+function expandedWidthFor(vw: number): number {
+  return Math.min(PANEL_WIDTH_EXPANDED, vw - 68)
+}
+
+function panelStyleWithoutWidth(
+  edge: Edge,
+  theme: "light" | "dark"
+): CSSProperties {
   const offset = BAR_WIDTH + PANEL_GAP + 4
   const base: CSSProperties = {
     position: "fixed",
     top: 16,
     bottom: 16,
-    width: `${width}px`,
-    // Solid opaque surface — no transparency.
     backgroundColor: theme === "dark" ? "#0a0a0a" : "#ffffff",
     opacity: 1,
     color: theme === "dark" ? "#fafafa" : "#171717",
@@ -51,10 +73,19 @@ export function GlimpsePanel({
   app,
   edge,
   theme,
+  pinned = false,
+  expanded = false,
   onClose
 }: GlimpsePanelProps) {
   const reduced = usePrefersReducedMotion()
+  const vw = useViewportWidth()
   const panelRef = useRef<HTMLDivElement | null>(null)
+  // Fallback to compact when the viewport can't comfortably fit the
+  // expanded layout — keeps the bar usable on narrow windows.
+  const effectiveExpanded = expanded && vw >= EXPAND_BREAKPOINT
+  const targetWidth = effectiveExpanded
+    ? expandedWidthFor(vw)
+    : compactWidthFor(vw)
 
   useEffect(() => {
     if (!app) return
@@ -62,6 +93,9 @@ export function GlimpsePanel({
       if (e.key === "Escape") onClose()
     }
     const onPointer = (e: PointerEvent) => {
+      // While pinned, outside-click dismissal is suppressed. ESC and the
+      // close button remain functional.
+      if (pinned) return
       const panel = panelRef.current
       if (!panel) return
       // Use composedPath so we see through the shadow-root boundary.
@@ -85,7 +119,7 @@ export function GlimpsePanel({
       window.removeEventListener("keydown", onKey)
       window.removeEventListener("pointerdown", onPointer, true)
     }
-  }, [app, onClose])
+  }, [app, onClose, pinned])
 
   // Motion design:
   //   • Slide a meaningful distance (80px) so the panel reads as "emerging
@@ -111,13 +145,19 @@ export function GlimpsePanel({
           role="dialog"
           aria-label={`${app.name} panel`}
           aria-modal="false"
-          initial={{ x: xOff, scale: 0.96 }}
+          initial={{ x: xOff, scale: 0.96, width: targetWidth }}
           animate={{
             x: 0,
             scale: 1,
+            width: targetWidth,
             transition: reduced
               ? { duration: 0 }
-              : { duration: 0.34, ease: easeOpen }
+              : {
+                  default: { duration: 0.34, ease: easeOpen },
+                  // Width tween (compact ↔ expanded) uses its own timing
+                  // so toggling feels snappier than the open animation.
+                  width: { duration: 0.28, ease: easeOpen }
+                }
           }}
           exit={{
             x: xOff,
@@ -127,7 +167,7 @@ export function GlimpsePanel({
               : { duration: 0.2, ease: easeClose }
           }}
           style={{
-            ...panelStyle(edge, theme),
+            ...panelStyleWithoutWidth(edge, theme),
             transformOrigin,
             willChange: "transform"
           }}
