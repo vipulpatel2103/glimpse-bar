@@ -33,13 +33,23 @@ export function PopoverPortalProvider({
 
   return (
     <PopoverPortalContext.Provider value={host}>
+      {children}
+      {/* Host renders AFTER children so portaled popovers paint above the
+          panel when both share the same z-index (panel + popover both pin
+          to 2147483647; same z-index → DOM order decides; later wins). */}
       <div
         ref={(el) => setHost(el)}
+        // The data attribute tags this element as "logically part of the
+        // panel" for outside-click handlers — anything portaled into here
+        // (DatePopover, ContextMenu, ListConfigMenu) is a child of this
+        // host in DOM but a peer of the panel in DOM order. Without this
+        // marker, GlimpsePanel.onPointer would treat clicks on portaled
+        // popovers as "outside" and dismiss the panel mid-interaction.
+        data-glimpse-popover-host="true"
         // Layout-free anchor; popovers render with position:fixed.
         style={{ position: "fixed", inset: 0, pointerEvents: "none" }}
         aria-hidden="true"
       />
-      {children}
     </PopoverPortalContext.Provider>
   )
 }

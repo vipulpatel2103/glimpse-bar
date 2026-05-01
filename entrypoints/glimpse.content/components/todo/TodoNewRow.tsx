@@ -1,5 +1,10 @@
 import { Plus } from "lucide-react"
-import { useCallback, useState, type KeyboardEvent } from "react"
+import {
+  forwardRef,
+  useCallback,
+  useState,
+  type KeyboardEvent
+} from "react"
 
 interface TodoNewRowProps {
   theme: "light" | "dark"
@@ -10,12 +15,11 @@ interface TodoNewRowProps {
   borderless?: boolean
 }
 
-export function TodoNewRow({
-  theme,
-  placeholder = "New task",
-  onSubmit,
-  borderless = false
-}: TodoNewRowProps) {
+export const TodoNewRow = forwardRef<HTMLInputElement, TodoNewRowProps>(
+  function TodoNewRow(
+    { theme, placeholder = "New task", onSubmit, borderless = false },
+    ref
+  ) {
   const [value, setValue] = useState("")
 
   const commit = useCallback(() => {
@@ -56,6 +60,7 @@ export function TodoNewRow({
         style={{ color: theme === "dark" ? "#a3a3a3" : "#737373" }}
       />
       <input
+        ref={ref}
         type="text"
         value={value}
         onChange={(e) => setValue(e.target.value)}
@@ -71,4 +76,5 @@ export function TodoNewRow({
       />
     </div>
   )
-}
+  }
+)

@@ -17,6 +17,7 @@ import {
   type RefObject
 } from "react"
 
+
 import {
   chipNextWeek,
   chipThisWeekend,
@@ -25,7 +26,6 @@ import {
 } from "~/lib/todos/dates"
 
 import { usePrefersReducedMotion } from "../../hooks/useTheme"
-import { PopoverPortal } from "../PopoverPortal"
 
 interface DatePopoverProps {
   open: boolean
@@ -80,20 +80,34 @@ export function DatePopover({
 }: DatePopoverProps) {
   const reduced = usePrefersReducedMotion()
   const popoverRef = useRef<HTMLDivElement | null>(null)
-  const nativePickerRef = useRef<HTMLInputElement | null>(null)
   const [coords, setCoords] = useState({ top: 0, left: 0 })
 
   useLayoutEffect(() => {
     if (!open) return
     const anchor = anchorRef.current
     if (!anchor) return
-    const rect = anchor.getBoundingClientRect()
-    // Popover renders into the PopoverPortal target (sibling of the
-    // panel motion.div), so it escapes the panel's transform + overflow
-    // clip. Viewport coordinates apply directly; no compensation needed.
-    let left = rect.right - POPOVER_WIDTH
-    if (left < 8) left = 8
-    setCoords({ top: rect.bottom + 4, left })
+    const anchorRect = anchor.getBoundingClientRect()
+
+    // Popovers render inline (no portal) so position:fixed is captured by
+    // the panel's transform (CLAUDE.md). Use position:absolute relative to
+    // the panel (nearest positioned ancestor). Find the panel via closest().
+    const panel = anchor.closest('[role="dialog"]') as HTMLElement | null
+    const pr = panel?.getBoundingClientRect() ?? { top: 0, left: 0, width: 360, height: 600 }
+    const panelW = pr.width ?? 360
+    const panelH = pr.height ?? 600
+
+    // Estimate popover height for flip decision.
+    const estH = CHIPS.length * 32 + 48  // chips + pick-date row + remove-date row
+    const topBelow = anchorRect.bottom + 4 - pr.top
+    const top = topBelow + estH > panelH - 8
+      ? anchorRect.top - pr.top - estH - 4
+      : topBelow
+
+    let left = anchorRect.right - POPOVER_WIDTH - pr.left
+    if (left < 4) left = 4
+    if (left + POPOVER_WIDTH > panelW - 4) left = panelW - POPOVER_WIDTH - 4
+
+    setCoords({ top: Math.max(4, top), left })
   }, [open, anchorRef])
 
   useEffect(() => {
@@ -137,6 +151,7 @@ export function DatePopover({
     [onPick, onClose]
   )
 
+
   const handleRemove = useCallback(() => {
     onPick(undefined)
     onClose()
@@ -156,7 +171,6 @@ export function DatePopover({
   const mutedColor = theme === "dark" ? "#a3a3a3" : "#737373"
 
   return (
-    <PopoverPortal>
     <AnimatePresence>
       {open && (
         <motion.div
@@ -181,7 +195,10 @@ export function DatePopover({
               : { duration: 0.14, ease: [0.4, 0, 1, 1] }
           }}
           style={{
-            position: "fixed",
+            // position:absolute relative to the panel (nearest
+            // position:fixed ancestor). Avoids portal pointer-events
+            // inheritance issues in WXT shadow DOM context.
+            position: "absolute",
             top: coords.top,
             left: coords.left,
             width: POPOVER_WIDTH,
@@ -190,7 +207,7 @@ export function DatePopover({
             borderRadius: 8,
             boxShadow: popoverShadow,
             padding: 4,
-            zIndex: 2147483647,
+            zIndex: 9999,
             transformOrigin: "top right"
           }}>
           {CHIPS.map((chip) => {
@@ -216,53 +233,48 @@ export function DatePopover({
             className="my-1"
             style={{ height: 1, backgroundColor: dividerColor }}
           />
-          <button
-            type="button"
-            onClick={() => {
-              const el = nativePickerRef.current
-              if (!el) return
-              // showPicker() is the only reliable way to open the
-              // native date picker on click in Chromium. Falls back to
-              // .focus() (which opens the picker on Firefox).
-              if (typeof el.showPicker === "function") {
-                try {
-                  el.showPicker()
-                } catch {
-                  el.focus()
-                }
-              } else {
-                el.focus()
-              }
-            }}
+          {/* Visible date input. The user interacts with it directly
+              (click or keyboard). showPicker() / hidden-input tricks both
+              fail in Chrome's content-script / shadow-root context, but a
+              visible input that the user activates works reliably.
+              colorScheme keeps the native widget styled for the theme. */}
+          <label
             className={
-              "flex w-full items-center gap-2 rounded px-2 py-1.5 " +
+              "flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 " +
               "hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
             }>
-            <Calendar size={14} strokeWidth={2} aria-hidden="true" />
-            <span className="flex-1 text-left text-[13px] leading-tight">
-              Pick date…
-            </span>
-          </button>
-          <input
-            ref={nativePickerRef}
-            type="date"
-            defaultValue={
-              currentDueAt ? toDateInputValue(currentDueAt) : undefined
-            }
-            min={toDateInputValue(Date.now())}
-            onChange={(e) => handleNativeChange(e.target.value)}
-            // Hidden but reachable; showPicker() needs the element to be
-            // present in the DOM, but it doesn't need to be visible.
-            style={{
-              position: "absolute",
-              width: 0,
-              height: 0,
-              opacity: 0,
-              pointerEvents: "none"
-            }}
-            tabIndex={-1}
-            aria-hidden="true"
-          />
+            <Calendar
+              size={14}
+              strokeWidth={2}
+              aria-hidden="true"
+              style={{ flexShrink: 0 }}
+            />
+            <input
+              type="date"
+              defaultValue={
+                currentDueAt ? toDateInputValue(currentDueAt) : undefined
+              }
+              min={toDateInputValue(Date.now())}
+              onChange={(e) => {
+                if (e.target.value) {
+                  // Only update the task's date — do NOT call onClose() here.
+                  // onChange fires as soon as any sub-field (MM/DD/YYYY)
+                  // becomes valid, so auto-closing collapses the popover on
+                  // the user's first keystroke when defaultValue is pre-filled.
+                  // The user closes naturally (click outside / Escape / chip).
+                  const ts = fromDateInputValue(e.target.value)
+                  if (ts !== undefined) onPick(ts)
+                }
+              }}
+              className="flex-1 bg-transparent text-[13px] leading-tight focus:outline-none"
+              style={{
+                colorScheme: theme === "dark" ? "dark" : "light",
+                minWidth: 0,
+                cursor: "pointer"
+              }}
+              aria-label="Pick a date"
+            />
+          </label>
           {currentDueAt !== undefined && (
             <>
               <div
@@ -285,6 +297,5 @@ export function DatePopover({
         </motion.div>
       )}
     </AnimatePresence>
-    </PopoverPortal>
   )
 }

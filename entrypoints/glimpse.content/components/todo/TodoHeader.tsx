@@ -46,6 +46,8 @@ interface TodoHeaderProps {
   expanded: boolean
   /** When false, the maximize/minimize button is hidden (viewport too narrow). */
   canExpand: boolean
+  /** Drives the small dot indicator on the maximize button. */
+  pinned: boolean
   onToggleExpanded: () => void
   onChangeView: (view: SystemView | ListId) => void
   onCreateList: (name: string) => void
@@ -77,6 +79,7 @@ export function TodoHeader({
   counts,
   expanded,
   canExpand,
+  pinned,
   onToggleExpanded,
   onChangeView,
   onCreateList,
@@ -304,15 +307,33 @@ export function TodoHeader({
         <button
           type="button"
           onClick={onToggleExpanded}
-          aria-label={expanded ? "Collapse panel" : "Expand panel"}
-          title={expanded ? "Collapse" : "Expand"}
+          aria-label={
+            (expanded ? "Collapse panel" : "Expand panel") +
+            (pinned ? " (pinned)" : "")
+          }
+          title={
+            (expanded ? "Collapse" : "Expand") + (pinned ? " — pinned" : "")
+          }
           className={
-            "ml-auto flex h-7 w-7 items-center justify-center rounded transition-colors " +
+            "relative ml-auto flex h-7 w-7 items-center justify-center rounded transition-colors " +
             "hover:bg-black/[0.04] dark:hover:bg-white/[0.06] " +
             "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           }
           style={{ color: theme === "dark" ? "#a3a3a3" : "#737373" }}>
           <ToggleIcon size={14} strokeWidth={2} aria-hidden="true" />
+          {pinned ? (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute right-1 top-1 block h-1.5 w-1.5 rounded-full"
+              style={{
+                backgroundColor: "#3b82f6",
+                boxShadow:
+                  theme === "dark"
+                    ? "0 0 0 1.5px #0a0a0a"
+                    : "0 0 0 1.5px #ffffff"
+              }}
+            />
+          ) : null}
         </button>
       ) : null}
 
@@ -382,7 +403,16 @@ export function TodoHeader({
                 <div
                   key={list.id}
                   className="flex items-center gap-2 rounded px-2 py-1.5">
-                  <List size={14} strokeWidth={2} aria-hidden="true" />
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 3,
+                      height: 14,
+                      borderRadius: 2,
+                      flexShrink: 0,
+                      backgroundColor: list.color ?? mutedColor
+                    }}
+                  />
                   <input
                     ref={renameInputRef}
                     autoFocus
@@ -415,7 +445,17 @@ export function TodoHeader({
                         ? "bg-black/[0.06] dark:bg-white/[0.10] font-semibold"
                         : "")
                     }>
-                    <List size={14} strokeWidth={2} aria-hidden="true" />
+                    {/* Color swatch replaces generic List icon */}
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        width: 3,
+                        height: 14,
+                        borderRadius: 2,
+                        flexShrink: 0,
+                        backgroundColor: list.color ?? mutedColor
+                      }}
+                    />
                     <span className="flex-1 text-[13px] leading-tight truncate">
                       {list.name}
                     </span>

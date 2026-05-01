@@ -2,7 +2,6 @@
 // Designed to be cheap enough to call inside `useMemo` keyed on items + bucket.
 
 import {
-  addDays,
   dayKey,
   endOfDay,
   startOfDay
@@ -47,10 +46,9 @@ export interface UpcomingGroup {
   items: TodoItem[]
 }
 
-/** Upcoming bucket: dueAt in (endOfToday, endOfToday + 7d], grouped by day. */
+/** Upcoming bucket: all undone items with dueAt after end-of-today, grouped by day. */
 export function selectUpcoming(items: TodoItem[], now: number): UpcomingGroup[] {
   const todayEnd = endOfDay(now)
-  const horizon = addDays(todayEnd, 7)
   const filtered = items
     .filter(notDeleted)
     .filter(rootOnly)
@@ -58,8 +56,7 @@ export function selectUpcoming(items: TodoItem[], now: number): UpcomingGroup[] 
       (t) =>
         !t.done &&
         t.dueAt !== undefined &&
-        t.dueAt > todayEnd &&
-        t.dueAt <= horizon
+        t.dueAt > todayEnd
     )
     .sort(byDueThenOrder)
 
@@ -76,14 +73,17 @@ export function selectUpcoming(items: TodoItem[], now: number): UpcomingGroup[] 
   return Array.from(groups.values()).sort((a, b) => a.ts - b.ts)
 }
 
-/** Inbox: no due date, default list, root-level, not done. */
+/**
+ * Inbox: all undone root tasks whose home list is Inbox, regardless of
+ * whether they have a due date. Setting or removing a date does not move a
+ * task out of Inbox — dated tasks also appear in Today / Upcoming, giving
+ * the user a single place to see all captured tasks.
+ */
 export function selectInbox(items: TodoItem[]): TodoItem[] {
   return items
     .filter(notDeleted)
     .filter(rootOnly)
-    .filter(
-      (t) => !t.done && t.dueAt === undefined && t.listId === INBOX_LIST_ID
-    )
+    .filter((t) => !t.done && t.listId === INBOX_LIST_ID)
     .sort((a, b) => a.order - b.order)
 }
 

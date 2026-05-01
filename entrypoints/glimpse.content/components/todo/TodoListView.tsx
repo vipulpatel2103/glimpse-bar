@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react"
 
-import type { TodoItem } from "~/lib/todos/types"
+import type { SortMode, TodoItem } from "~/lib/todos/types"
 
 import { TodoRow } from "./TodoRow"
 
@@ -10,10 +10,24 @@ interface TodoListViewProps {
   emptyHint: string
   EmptyIcon?: LucideIcon
   theme: "light" | "dark"
+  /**
+   * Per-item color lookup (Today / Inbox / Completed — items span many lists).
+   * Takes priority over flat `listColor`.
+   */
+  colorOf?: (listId: string) => string | undefined
+  /** Flat color for a single-list view (custom list view only). */
+  listColor?: string
+  /** Drives Move up / Move down items in row context menus. */
+  sortMode?: SortMode
+  /** Returns child subtasks for a given parent id (already sorted). */
+  childrenOf?: (parentId: string) => TodoItem[]
   onToggle: (id: string) => void
   onDelete: (id: string) => void
   onSetDue: (id: string, dueAt: number | undefined) => void
   onUpdateText: (id: string, text: string) => void
+  onDuplicate?: (id: string) => void
+  onReorder?: (id: string, direction: -1 | 1) => void
+  onAddSubtask?: (parentId: string, text: string) => void
 }
 
 export function TodoListView({
@@ -22,10 +36,17 @@ export function TodoListView({
   emptyHint,
   EmptyIcon,
   theme,
+  colorOf,
+  listColor,
+  sortMode,
+  childrenOf,
   onToggle,
   onDelete,
   onSetDue,
-  onUpdateText
+  onUpdateText,
+  onDuplicate,
+  onReorder,
+  onAddSubtask
 }: TodoListViewProps) {
   if (items.length === 0) {
     return (
@@ -60,10 +81,16 @@ export function TodoListView({
           item={item}
           now={now}
           theme={theme}
+          listColor={colorOf ? colorOf(item.listId) : listColor}
+          subtasks={childrenOf ? childrenOf(item.id) : undefined}
+          sortMode={sortMode}
           onToggle={onToggle}
           onDelete={onDelete}
           onSetDue={onSetDue}
           onUpdateText={onUpdateText}
+          onDuplicate={onDuplicate}
+          onReorder={onReorder}
+          onAddSubtask={onAddSubtask}
         />
       ))}
     </div>

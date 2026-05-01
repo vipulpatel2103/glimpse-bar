@@ -3,6 +3,7 @@
 
 import {
   INBOX_LIST_ID,
+  LIST_COLORS,
   inboxDefault,
   type ListId,
   type ListMeta,
@@ -198,9 +199,13 @@ export function addList(
   now: number = Date.now()
 ): { lists: ListMeta[]; created: ListMeta } {
   const trimmed = name.trim() || "Untitled"
+  // Cycle through the palette based on how many custom lists already exist.
+  const customCount = lists.filter((l) => l.id !== INBOX_LIST_ID).length
+  const color = LIST_COLORS[customCount % LIST_COLORS.length]
   const created: ListMeta = {
     id: uid(),
     name: trimmed,
+    color,
     sort: "manual",
     newTaskPosition: "bottom",
     showCompleted: "30d",

@@ -37,9 +37,23 @@ export interface TodoItem {
   remindAt?: number
 }
 
+/** Cycling palette for auto-assigned list colors. */
+export const LIST_COLORS = [
+  "#22c55e", // green
+  "#06b6d4", // cyan
+  "#a855f7", // purple
+  "#f97316", // orange
+  "#ec4899", // pink
+  "#ef4444", // red
+  "#eab308", // yellow
+  "#3b82f6", // blue
+] as const
+
 export interface ListMeta {
   id: ListId
   name: string
+  /** Hex color auto-assigned on creation. Inbox has no color. */
+  color?: string
   sort: SortMode
   newTaskPosition: NewTaskPosition
   showCompleted: ShowCompletedWindow

@@ -13,10 +13,12 @@ import { addDays, startOfDay } from "~/lib/todos/dates"
 import {
   addList as addListM,
   addTodo,
+  duplicateTodo,
   ensureInbox,
   removeList as removeListM,
   removeTodo,
   renameList as renameListM,
+  reorderTodo,
   setDueAt,
   toggleDone,
   updateListConfig,
@@ -38,7 +40,9 @@ import {
   type NewTaskPosition,
   type ShowCompletedWindow,
   type SortMode,
-  type SystemView
+  type SystemView,
+  type TodoId,
+  type TodoItem
 } from "~/lib/todos/types"
 
 import { useNowTick } from "../../hooks/useNowTick"
@@ -217,6 +221,60 @@ export function TodoApp({ theme }: TodoAppProps) {
     [todos, setTodos]
   )
 
+  const handleDuplicate = useCallback(
+    (id: string) => {
+      const { items } = duplicateTodo(todos, id)
+      void setTodos(items)
+    },
+    [todos, setTodos]
+  )
+
+  const handleReorder = useCallback(
+    (id: string, direction: -1 | 1) => {
+      void setTodos(reorderTodo(todos, id, direction))
+    },
+    [todos, setTodos]
+  )
+
+  const handleAddSubtask = useCallback(
+    (parentId: TodoId, text: string) => {
+      const parent = todos.find((t) => t.id === parentId)
+      if (!parent) return
+      const { items } = addTodo(todos, safeLists, {
+        text,
+        parentId,
+        listId: parent.listId
+      })
+      void setTodos(items)
+    },
+    [todos, safeLists, setTodos]
+  )
+
+  // Color lookup for custom lists (used by all views to tint task rows).
+  const colorOf = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const l of safeLists) {
+      if (l.color) map.set(l.id, l.color)
+    }
+    return (listId: string) => map.get(listId)
+  }, [safeLists])
+
+  // Memoize children lookup so child arrays remain referentially stable across
+  // re-renders that don't change the underlying todos.
+  const childrenOf = useMemo(() => {
+    const byParent = new Map<string, TodoItem[]>()
+    for (const t of todos) {
+      if (!t.parentId) continue
+      const arr = byParent.get(t.parentId)
+      if (arr) arr.push(t)
+      else byParent.set(t.parentId, [t])
+    }
+    for (const arr of byParent.values()) {
+      arr.sort((a, b) => a.order - b.order)
+    }
+    return (parentId: string) => byParent.get(parentId) ?? []
+  }, [todos])
+
   const handleChangeView = useCallback(
     (next: SystemView | ListId) => {
       void setTodoUi({ ...todoUi, activeView: next })
@@ -298,6 +356,31 @@ export function TodoApp({ theme }: TodoAppProps) {
     void setTodoUi({ ...todoUi, expanded: !todoUi.expanded })
   }, [todoUi, setTodoUi])
 
+  // Manual reorder (Move up / Move down) only makes sense in a custom-list
+  // view with sort=manual. System views and lists with date/alpha sort hide
+  // the reorder items in the row context menu.
+  const rowSortMode: SortMode | undefined = isCustomListView
+    ? activeList?.sort
+    : undefined
+
+  // Pass row-context handlers everywhere (Duplicate, AddSubtask) — they're
+  // safe even on Completed since the menu is disabled per-item where it
+  // shouldn't apply.
+  const sharedRowProps = {
+    onToggle: handleToggle,
+    onDelete: handleDelete,
+    onSetDue: handleSetDue,
+    onUpdateText: handleUpdateText,
+    onDuplicate: handleDuplicate,
+    onReorder: rowSortMode === "manual" ? handleReorder : undefined,
+    onAddSubtask: handleAddSubtask,
+    childrenOf,
+    sortMode: rowSortMode,
+    // Pass colorOf to every TodoListView so items from custom lists show
+    // their color in Today / Inbox / Completed views.
+    colorOf
+  }
+
   // ── Body render ──
   let body
   if (isSystemView(view)) {
@@ -309,10 +392,7 @@ export function TodoApp({ theme }: TodoAppProps) {
           emptyHint={SYSTEM_EMPTY.today.hint}
           EmptyIcon={SYSTEM_EMPTY.today.Icon}
           theme={theme}
-          onToggle={handleToggle}
-          onDelete={handleDelete}
-          onSetDue={handleSetDue}
-          onUpdateText={handleUpdateText}
+          {...sharedRowProps}
         />
       )
     } else if (view === "upcoming") {
@@ -321,10 +401,7 @@ export function TodoApp({ theme }: TodoAppProps) {
           groups={selectUpcoming(todos, now)}
           now={now}
           theme={theme}
-          onToggle={handleToggle}
-          onDelete={handleDelete}
-          onSetDue={handleSetDue}
-          onUpdateText={handleUpdateText}
+          {...sharedRowProps}
         />
       )
     } else if (view === "inbox") {
@@ -335,10 +412,7 @@ export function TodoApp({ theme }: TodoAppProps) {
           emptyHint={SYSTEM_EMPTY.inbox.hint}
           EmptyIcon={SYSTEM_EMPTY.inbox.Icon}
           theme={theme}
-          onToggle={handleToggle}
-          onDelete={handleDelete}
-          onSetDue={handleSetDue}
-          onUpdateText={handleUpdateText}
+          {...sharedRowProps}
         />
       )
     } else {
@@ -353,10 +427,7 @@ export function TodoApp({ theme }: TodoAppProps) {
           emptyHint={SYSTEM_EMPTY.completed.hint}
           EmptyIcon={SYSTEM_EMPTY.completed.Icon}
           theme={theme}
-          onToggle={handleToggle}
-          onDelete={handleDelete}
-          onSetDue={handleSetDue}
-          onUpdateText={handleUpdateText}
+          {...sharedRowProps}
         />
       )
     }
@@ -372,10 +443,8 @@ export function TodoApp({ theme }: TodoAppProps) {
         emptyHint="No tasks here yet. Type below to add one."
         EmptyIcon={ListIcon}
         theme={theme}
-        onToggle={handleToggle}
-        onDelete={handleDelete}
-        onSetDue={handleSetDue}
-        onUpdateText={handleUpdateText}
+        listColor={activeList?.color}
+        {...sharedRowProps}
       />
     )
   }
@@ -396,6 +465,7 @@ export function TodoApp({ theme }: TodoAppProps) {
         counts={counts}
         expanded={expanded}
         canExpand={canExpand}
+        pinned={todoUi.pinned}
         onToggleExpanded={handleToggleExpanded}
         onChangeView={handleChangeView}
         onCreateList={handleCreateList}

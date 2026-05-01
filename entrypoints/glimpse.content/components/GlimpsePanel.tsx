@@ -111,6 +111,18 @@ export function GlimpsePanel({
           ? rootNode.querySelector('[role="toolbar"]')
           : null
       if (bar && path.includes(bar)) return
+      // Click on a portaled popover (DatePopover, ContextMenu,
+      // ListConfigMenu) belongs to the panel logically even though the
+      // host element is a sibling of the panel motion.div in DOM. The
+      // host is tagged with data-glimpse-popover-host so we can detect it
+      // here. Without this guard, picking a chip / menu item would dismiss
+      // the panel mid-interaction.
+      const hitsPopoverHost = path.some(
+        (n) =>
+          n instanceof HTMLElement &&
+          n.dataset.glimpsePopoverHost === "true"
+      )
+      if (hitsPopoverHost) return
       onClose()
     }
     window.addEventListener("keydown", onKey)

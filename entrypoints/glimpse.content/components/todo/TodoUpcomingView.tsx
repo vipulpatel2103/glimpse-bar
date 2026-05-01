@@ -2,6 +2,7 @@ import { CalendarRange } from "lucide-react"
 
 import { formatDayLabel } from "~/lib/todos/dates"
 import type { UpcomingGroup } from "~/lib/todos/selectors"
+import type { SortMode, TodoItem } from "~/lib/todos/types"
 
 import { TodoRow } from "./TodoRow"
 
@@ -9,20 +10,33 @@ interface TodoUpcomingViewProps {
   groups: UpcomingGroup[]
   now: number
   theme: "light" | "dark"
+  /** Lookup fn: returns the color for a given listId (undefined for system/inbox). */
+  colorOf?: (listId: string) => string | undefined
+  sortMode?: SortMode
+  childrenOf?: (parentId: string) => TodoItem[]
   onToggle: (id: string) => void
   onDelete: (id: string) => void
   onSetDue: (id: string, dueAt: number | undefined) => void
   onUpdateText: (id: string, text: string) => void
+  onDuplicate?: (id: string) => void
+  onReorder?: (id: string, direction: -1 | 1) => void
+  onAddSubtask?: (parentId: string, text: string) => void
 }
 
 export function TodoUpcomingView({
   groups,
   now,
   theme,
+  colorOf,
+  sortMode,
+  childrenOf,
   onToggle,
   onDelete,
   onSetDue,
-  onUpdateText
+  onUpdateText,
+  onDuplicate,
+  onReorder,
+  onAddSubtask
 }: TodoUpcomingViewProps) {
   if (groups.length === 0) {
     return (
@@ -63,10 +77,16 @@ export function TodoUpcomingView({
                 item={item}
                 now={now}
                 theme={theme}
+                listColor={colorOf ? colorOf(item.listId) : undefined}
+                subtasks={childrenOf ? childrenOf(item.id) : undefined}
+                sortMode={sortMode}
                 onToggle={onToggle}
                 onDelete={onDelete}
                 onSetDue={onSetDue}
                 onUpdateText={onUpdateText}
+                onDuplicate={onDuplicate}
+                onReorder={onReorder}
+                onAddSubtask={onAddSubtask}
               />
             ))}
           </div>

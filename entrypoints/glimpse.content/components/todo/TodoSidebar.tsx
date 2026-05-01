@@ -201,7 +201,16 @@ export function TodoSidebar({
             <div
               key={list.id}
               className="flex items-center gap-2 rounded px-2 py-1.5">
-              <List size={14} strokeWidth={2} aria-hidden="true" />
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 3,
+                  height: 14,
+                  borderRadius: 2,
+                  flexShrink: 0,
+                  backgroundColor: list.color ?? muted
+                }}
+              />
               <input
                 autoFocus
                 type="text"
@@ -221,13 +230,22 @@ export function TodoSidebar({
                 onClick={() => onChangeView(list.id)}
                 aria-current={list.id === activeView ? "page" : undefined}
                 className={
-                  "flex w-full items-center gap-2 rounded px-2 py-1.5 text-[13px] leading-tight " +
+                  "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-[13px] leading-tight " +
                   "hover:bg-black/[0.04] dark:hover:bg-white/[0.06] " +
                   "focus:outline-none focus-visible:bg-black/[0.04] " +
                   "dark:focus-visible:bg-white/[0.06] " +
                   (list.id === activeView ? activeStyle : "")
                 }>
-                <List size={14} strokeWidth={2} aria-hidden="true" />
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 3,
+                    height: 14,
+                    borderRadius: 2,
+                    flexShrink: 0,
+                    backgroundColor: list.color ?? muted
+                  }}
+                />
                 <span className="flex-1 truncate">{list.name}</span>
                 <span
                   className={

@@ -16,7 +16,6 @@ import type {
 } from "~/lib/todos/types"
 
 import { usePrefersReducedMotion } from "../../hooks/useTheme"
-import { PopoverPortal } from "../PopoverPortal"
 
 interface ListConfigMenuProps {
   open: boolean
@@ -122,13 +121,17 @@ export function ListConfigMenu({
     const anchor = anchorRef.current
     if (!anchor) return
     const rect = anchor.getBoundingClientRect()
-    // Portal target lives outside the panel's transform + overflow clip,
-    // so viewport coordinates apply directly.
-    let left = rect.right - POPOVER_WIDTH
-    if (left < 8) left = 8
+    // position:absolute relative to the panel (nearest positioned ancestor).
+    const panel = anchor.closest('[role="dialog"]') as HTMLElement | null
+    const pr = panel?.getBoundingClientRect() ?? { top: 0, left: 0, width: 360, height: 600 }
+    const panelW = pr.width ?? 360
     const estimatedHeight = 320
-    const top = rect.top - estimatedHeight - 4
-    setCoords({ top, left })
+    // Opens above the footer trigger.
+    const top = rect.top - pr.top - estimatedHeight - 4
+    let left = rect.right - POPOVER_WIDTH - pr.left
+    if (left < 4) left = 4
+    if (left + POPOVER_WIDTH > panelW - 4) left = panelW - POPOVER_WIDTH - 4
+    setCoords({ top: Math.max(4, top), left })
   }, [open, anchorRef])
 
   useEffect(() => {
@@ -175,7 +178,6 @@ export function ListConfigMenu({
     showCompleted !== undefined
 
   return (
-    <PopoverPortal>
     <AnimatePresence>
       {open && (
         <motion.div
@@ -200,7 +202,7 @@ export function ListConfigMenu({
               : { duration: 0.14, ease: [0.4, 0, 1, 1] }
           }}
           style={{
-            position: "fixed",
+            position: "absolute",
             top: coords.top,
             left: coords.left,
             width: POPOVER_WIDTH,
@@ -208,7 +210,7 @@ export function ListConfigMenu({
             border: popoverBorder,
             borderRadius: 8,
             boxShadow: popoverShadow,
-            zIndex: 2147483647,
+            zIndex: 9999,
             transformOrigin: "bottom right"
           }}>
           {showListSections && (
@@ -313,6 +315,5 @@ export function ListConfigMenu({
         </motion.div>
       )}
     </AnimatePresence>
-    </PopoverPortal>
   )
 }
