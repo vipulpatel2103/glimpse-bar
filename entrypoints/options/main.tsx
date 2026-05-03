@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import ReactDOM from "react-dom/client"
 
 import { transparencyItem } from "~/lib/storage"
+import { GitHubSection } from "./sections/GitHubSection"
 
 function useTheme(): "light" | "dark" {
   const [isDark, setIsDark] = useState<boolean>(() => {
@@ -84,6 +85,9 @@ function Options() {
               background, 100% = fully opaque.
             </p>
           </label>
+
+          <hr className="my-6 border-black/[0.08] dark:border-white/[0.08]" />
+          <GitHubSection />
         </div>
       </main>
     </div>

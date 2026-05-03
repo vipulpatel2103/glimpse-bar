@@ -1,54 +1,69 @@
 # GitHub PRs
 
 > **Phase folder:** `docs/phases/02-github-prs/`
-> **Status:** Stub — not yet planned
-> **Plan when:** the **TODO** phase ([`../01-todo/`](../01-todo/)) is shipped and we've learned from it.
+> **Status:** Active — fully planned (2026-05-02)
+> **Framework:** WXT + React 18 + Tailwind v3 + `@wxt-dev/storage` (no new runtime deps; native `fetch` against the GitHub **GraphQL v4** API)
+> **Goal:** make the GitHub icon do real work. Show the user's open PRs — both authored and review-requested — inside the Glimpse Panel, with rich status (CI, review decision, conflicts, comments, approvers, branch, age, failing checks).
 
 ---
 
-## One-line goal
+## What you're building
 
-Show the user's GitHub PR review queue inside the GitHub Glimpse Panel.
+1. **Viewer header strip.** Top of the panel shows the connected GitHub user's avatar + `@login`, plus a `Change PAT` affordance that deep-links into the Options page section.
+2. **Three tabs (segmented control, top-right):** `Mine` (PRs the viewer opened), `Review` (PRs awaiting the viewer's review), `All` (union, deduped). Default tab is `Review`.
+3. **Date-grouped PR list.** Rows grouped under sticky day headers (e.g. `Mon Apr 20 2026`) keyed by `updatedAt` — same pattern as TODO's Upcoming view.
+4. **PR card rows** (per screenshot):
+   - Prominent title (truncated). PR number prefixed (`#1234`) at small caption size.
+   - Author avatar `→` reviewer avatars chain. Each avatar is a round chip with initials + colored ring per the reviewer's latest review state: **green** = approved, **amber** = changes requested, **red** = dismissed/rejected, **neutral** = pending / no review yet. Hover tooltip shows full `@login`.
+   - Right column: a single status pill (`Approved` / `Changes requested` / `Conflicts` / `Draft` / `Review required`) + a round overall-state icon (✓ ready, 🕒 pending, ⊖ neutral, ✕ failure).
+   - Bottom-right: comment count + `MessageSquare` icon.
+   - Card click → opens PR URL in new tab.
+5. **Background sync.** Service worker owns all GitHub API calls (GraphQL v4 — one POST per sync covers viewer + both queues + reviewers + CI rollup + mergeable state), and talks to content/options scripts via `chrome.runtime.sendMessage`. Centralises PAT handling, avoids host-page CORS, lets the panel render cached data while offline.
+6. **Auto-refresh** via `chrome.alarms` (configurable: 1 / 5 / 15 / 30 / 60 min, default 5). Manual refresh button (↻) in the header next to the `Nm ago` indicator.
+7. **PAT-based auth.** Personal Access Token entered in Glimpse Option Page → "Test connection" → "Save & sync" → "Change PAT" / "Disconnect". OAuth and other providers (Bitbucket, GitLab, Azure) deferred.
+8. **Per-repo enable/disable.** Repos auto-discovered from query results; user toggles each on/off in Options. Disabled repos filtered client-side.
+9. **Hide PR.** Permanent hide until unhidden. Hidden PRs surface in a `Hidden` view in the expanded sidebar.
+10. **Open in GitHub.** Click a row → opens the PR URL in a new tab. Context menu also exposes `Copy PR link` and `Copy branch name`.
+11. **Compact (360 px)** = viewer header + tabs + grouped list. **Expanded (≈720 px)** = sidebar (Mine / Review / All / Hidden / per-repo).
+12. **Rate-limit handling.** Respect `X-RateLimit-Remaining`; surface `Rate-limited · resets in Nm` in the header. Don't auto-retry storms.
 
----
-
-## Likely scope (subject to planning)
-
-- GitHub PR panel renderer.
-- Auth: Personal Access Token first (paste-into-options). OAuth deferred to a later phase.
-- Connections section in Glimpse Option Page: GitHub PAT input, "Test connection" button, "Disconnect".
-- Background service worker: `entrypoints/background.ts` (`defineBackground`) gains a fetch pipeline talking to the GitHub REST API. Content scripts call it via `browser.runtime.sendMessage` (or a typed wrapper using `@webext-core/messaging`). Reason: avoid CORS, centralise secret handling.
-- Refresh button on Glimpse Panel header (manual re-fetch).
-- Auto-refresh via `chrome.alarms` at a configurable interval (default 5 min).
-- Cache last successful response so the panel renders something while offline / awaiting refresh.
-- New permissions to add: none beyond `host_permissions` for `https://api.github.com/*` (or move all fetches through the SW which already has full host access via `<all_urls>`).
-- Rate-limit handling: respect `X-RateLimit-Remaining`, back off gracefully.
-
-## Out of scope (explicit, this phase)
-
-- Authoring / approving / commenting on PRs from the panel.
-- GitHub Issues, Discussions, Actions.
-- Multi-account.
-- OAuth (deferred until both Jira + GitHub are stable on PAT).
-
-## Open questions to settle before planning
-
-- Which PR queries do we ship: "review-requested:@me", "author:@me", or both with a tabbed UI?
-- How prominent is repo grouping vs. a flat list?
-- What does the icon badge show when there are unreviewed PRs (count? dot?) — only relevant if we add a toolbar badge later.
+That's it for Phase 02. **Out of scope:** writing actions (approve / request changes / comment / merge), GitHub Issues / Discussions / Actions, multi-account, OAuth, Bitbucket / GitLab / Azure.
 
 ---
 
-## Files this folder will hold (template — to be authored at planning time)
+## Files in this folder
 
-- `README.md` (this file, expanded)
-- `scope.md`
-- `plan.md`
-- `ui-spec.md`
-- `verification.md`
+| File | Purpose |
+|---|---|
+| [`README.md`](README.md) | This page. |
+| [`scope.md`](scope.md) | What's in / what's out / why. |
+| [`plan.md`](plan.md) | Step-by-step build order with exit criteria per step. |
+| [`ui-spec.md`](ui-spec.md) | Phase-scoped UI subset of [`../../ui-design.md`](../../ui-design.md) and [`../../../design.md`](../../../design.md). |
+| [`verification.md`](verification.md) | Acceptance criteria + manual QA script for this phase. |
 
 ---
 
-## Don't plan this yet
+## Cross-cutting references
 
-Per the project working agreement, we don't fully spec a phase until the previous phase has shipped. Notes here are intentionally rough.
+- [`../../requirements.md`](../../requirements.md) — system requirements (filter on `Phase: github`).
+- [`../../architecture.md`](../../architecture.md) — WXT entrypoints, shadow root UI, storage model, app registry.
+- [`../../ui-design.md`](../../ui-design.md) — full visual token system.
+- [`../../../design.md`](../../../design.md) — agent-friendly design summary. **Read before any UI step.**
+- [`../../testing-plan.md`](../../testing-plan.md) — full QA surface (subset listed in `verification.md`).
+- [`../../roadmap.md`](../../roadmap.md) — phase order + decision log (`alarms` permission rationale lands here).
+
+---
+
+## Carry-overs from earlier phases
+
+Phase 02 **inherits** everything shipped in Phases 00 and 01:
+
+- Shadow-root UI host (`<glimpse-ui>`) at `z-index: 2147483647`, re-applied on `wxt:locationchange`.
+- `useStorageItem`, `useTheme`, `usePrefersReducedMotion` hooks.
+- `App.tsx` panel orchestration, `GlimpsePanel.tsx` shell + dismissal (composedPath outside-click, transformed-ancestor offset compensation).
+- Lucide icons, motion language (280–340 ms ease-out open / 180–220 ms ease-in close), opaque panel surface.
+- Layout-viewport math (`document.documentElement.clientWidth/Height`, never `window.innerWidth`).
+- `chrome.runtime.openOptionsPage` via background-SW message.
+- TodoApp's pattern for tabs / sidebar / context menu / list-row / popover portal — the GitHub PR app mirrors this shape.
+
+Do **not** modify these primitives unless Phase 02 genuinely requires it.

@@ -1,6 +1,13 @@
 import { storage } from "@wxt-dev/storage"
 
 import type { AppId } from "./apps/types"
+import type {
+  GitHubAuthState,
+  GitHubUiState,
+  PrId,
+  PullRequest,
+  RepoMeta
+} from "./github/types"
 import { inboxDefault } from "./todos/types"
 import type { ListMeta, TodoItem, TodoUiState } from "./todos/types"
 
@@ -49,6 +56,46 @@ export const todoUiItem = storage.defineItem<TodoUiState>(
       expanded: false,
       pinned: false,
       sidebarCollapsed: false
+    }
+  }
+)
+
+// ── GitHub PRs phase storage ────────────────────────────────────────────────
+
+/** PAT + resolved login/avatar. sync: so it survives profile reinstalls. */
+export const githubAuthItem = storage.defineItem<GitHubAuthState>(
+  "sync:gb-github-auth",
+  { fallback: {} }
+)
+
+/** Cached PR list from the last successful sync. */
+export const githubPrsItem = storage.defineItem<PullRequest[]>(
+  "local:gb-github-prs",
+  { fallback: [] }
+)
+
+/** Repos auto-discovered from sync results, with per-repo enable toggle. */
+export const githubReposItem = storage.defineItem<RepoMeta[]>(
+  "local:gb-github-repos",
+  { fallback: [] }
+)
+
+/** Permanently hidden PR ids. */
+export const githubHiddenItem = storage.defineItem<PrId[]>(
+  "local:gb-github-hidden",
+  { fallback: [] }
+)
+
+export const githubUiItem = storage.defineItem<GitHubUiState>(
+  "local:gb-github-ui",
+  {
+    fallback: {
+      activeTab: "review",
+      expanded: false,
+      pinned: false,
+      sidebarCollapsed: false,
+      activeView: "review",
+      refreshIntervalMin: 5
     }
   }
 )

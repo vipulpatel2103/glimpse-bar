@@ -6,10 +6,10 @@ export default defineConfig({
     name: "Glimpse Bar",
     description:
       "Floating sidebar — TODO, Jira, GitHub PRs — on every page.",
-    // `contextMenus` powers right-click → "Add selection / page as task"
-    // (Phase 01 Step 9). `action` is required so the toolbar icon and
-    // badge counter (today-incomplete tasks) are wired up.
-    permissions: ["storage", "contextMenus"],
+    // `contextMenus` — right-click → "Add selection / page as task" (Phase 01).
+    // `action`       — toolbar icon + badge counter.
+    // `alarms`       — GitHub PR auto-refresh every N minutes (Phase 02).
+    permissions: ["storage", "contextMenus", "alarms"],
     host_permissions: ["<all_urls>"],
     action: {}
   }

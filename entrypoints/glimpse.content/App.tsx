@@ -5,6 +5,7 @@ import type { AppDefinition } from "~/lib/apps/types"
 import {
   activeAppItem,
   edgeItem,
+  githubUiItem,
   positionItem,
   todoUiItem,
   transparencyItem,
@@ -57,7 +58,8 @@ export default function App() {
   const [edge, setEdge] = useStorageItem(edgeItem)
   const [transparency] = useStorageItem(transparencyItem)
   const [activeAppId, setActiveAppId] = useStorageItem(activeAppItem)
-  const [todoUi] = useStorageItem(todoUiItem)
+  const [todoUi]   = useStorageItem(todoUiItem)
+  const [githubUi] = useStorageItem(githubUiItem)
 
   // First render uses fallback {0,0}; convert to right-center if still at origin.
   const displayPosition: Position =
@@ -107,10 +109,14 @@ export default function App() {
           app={activeApp}
           edge={edge}
           theme={theme}
-          // Pin and expanded only apply to the TODO app for now; other apps
-          // ignore the flags.
-          pinned={activeApp?.id === "todo" && todoUi.pinned}
-          expanded={activeApp?.id === "todo" && todoUi.expanded}
+          pinned={
+            (activeApp?.id === "todo"    && todoUi.pinned) ||
+            (activeApp?.id === "github"  && githubUi.pinned)
+          }
+          expanded={
+            (activeApp?.id === "todo"    && todoUi.expanded) ||
+            (activeApp?.id === "github"  && githubUi.expanded)
+          }
           onClose={onClosePanel}
         />
       </PopoverPortalProvider>

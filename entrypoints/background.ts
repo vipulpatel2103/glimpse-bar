@@ -1,14 +1,29 @@
-import { listsItem, todosItem } from "~/lib/storage"
+import {
+  githubAuthItem,
+  githubHiddenItem,
+  githubPrsItem,
+  githubReposItem,
+  githubUiItem,
+  listsItem,
+  todosItem
+} from "~/lib/storage"
+import { getViewer, missingScopes } from "~/lib/github/api"
+import { runSync } from "~/lib/github/sync"
 import { addTodo, ensureInbox } from "~/lib/todos/mutations"
 import { selectToday } from "~/lib/todos/selectors"
 import type { TodoItem } from "~/lib/todos/types"
 
-type GlimpseMessage = { type: "openOptionsPage" }
+type GlimpseMessage =
+  | { type: "openOptionsPage"; hash?: string }
+  | { type: "gh:testPat"; pat: string }
+  | { type: "gh:sync"; manual?: boolean }
+  | { type: "gh:disconnect" }
 
 const MENU_SELECTION = "gb-add-selection"
 const MENU_PAGE = "gb-add-page"
 const MAX_TEXT_LEN = 280
 const BADGE_COLOR = "#2563eb"
+const ALARM_GH_SYNC = "gh-sync"
 
 async function captureToInbox(rawText: string): Promise<void> {
   const text = rawText.trim().replace(/\s+/g, " ").slice(0, MAX_TEXT_LEN)
@@ -61,39 +76,108 @@ function registerContextMenus(): void {
   })
 }
 
+async function setupGhAlarm(): Promise<void> {
+  const ui = await githubUiItem.getValue()
+  chrome.alarms.create(ALARM_GH_SYNC, { periodInMinutes: ui.refreshIntervalMin })
+}
+
 export default defineBackground(() => {
-  // ── openOptionsPage bridge (Phase 00) ─────────────────────────────────
+  // ── Options page bridge (Phase 00 +) ─────────────────────────────────────
+  // Supports an optional `hash` so the panel can deep-link into a section
+  // (e.g. { type: 'openOptionsPage', hash: 'github' } → options.html#github).
   chrome.runtime.onMessage.addListener(
     (
       message: GlimpseMessage | undefined,
       _sender,
-      sendResponse: (resp: { ok: boolean; error?: string }) => void
+      sendResponse: (resp: { ok: boolean; error?: string; [k: string]: unknown }) => void
     ) => {
+      // ── openOptionsPage ─────────────────────────────────────────────────
       if (message?.type === "openOptionsPage") {
-        try {
-          chrome.runtime.openOptionsPage(() => {
-            const err = chrome.runtime.lastError
-            if (err) {
-              sendResponse({ ok: false, error: err.message })
+        const hash = message.hash
+        if (hash) {
+          // chrome.runtime.openOptionsPage() can't navigate to a specific hash,
+          // so open (or focus) a tab directly.
+          const url = chrome.runtime.getURL("options.html") + "#" + hash
+          chrome.tabs.query({ url }, (existing) => {
+            if (existing.length > 0 && existing[0].id != null) {
+              void chrome.tabs.update(existing[0].id, { active: true })
             } else {
-              sendResponse({ ok: true })
+              void chrome.tabs.create({ url })
             }
+            sendResponse({ ok: true })
           })
-        } catch (err) {
-          sendResponse({
-            ok: false,
-            error: err instanceof Error ? err.message : String(err)
-          })
+        } else {
+          try {
+            chrome.runtime.openOptionsPage(() => {
+              const err = chrome.runtime.lastError
+              sendResponse(err ? { ok: false, error: err.message } : { ok: true })
+            })
+          } catch (err) {
+            sendResponse({
+              ok: false,
+              error: err instanceof Error ? err.message : String(err)
+            })
+          }
         }
         return true
       }
+
+      // ── gh:testPat ──────────────────────────────────────────────────────
+      if (message?.type === "gh:testPat") {
+        const { pat } = message
+        getViewer(pat)
+          .then((viewer) => {
+            const ms = missingScopes(viewer)
+            sendResponse({
+              ok:              true,
+              login:           viewer.login,
+              avatarUrl:       viewer.avatarUrl,
+              scopes:          viewer.scopes,
+              isFinegrained:   viewer.isFinegrained,
+              missing:         ms.missing
+            })
+          })
+          .catch((err: unknown) => {
+            sendResponse({
+              ok:    false,
+              error: err instanceof Error ? err.message : String(err)
+            })
+          })
+        return true
+      }
+
+      // ── gh:sync ─────────────────────────────────────────────────────────
+      if (message?.type === "gh:sync") {
+        void runSync({ manual: message.manual ?? false })
+        sendResponse({ ok: true })
+        return true
+      }
+
+      // ── gh:disconnect ───────────────────────────────────────────────────
+      if (message?.type === "gh:disconnect") {
+        Promise.all([
+          githubAuthItem.setValue({}),
+          githubPrsItem.setValue([]),
+          githubReposItem.setValue([]),
+          githubHiddenItem.setValue([])
+          // githubUiItem intentionally untouched — preserve view preference.
+        ])
+          .then(() => sendResponse({ ok: true }))
+          .catch((err: unknown) => {
+            sendResponse({
+              ok:    false,
+              error: err instanceof Error ? err.message : String(err)
+            })
+          })
+        return true
+      }
+
       return false
     }
   )
 
-  // ── Context menus + badge counter (Phase 01 Step 9) ───────────────────
+  // ── Context menus + badge counter (Phase 01 Step 9) ───────────────────────
   chrome.runtime.onInstalled.addListener(registerContextMenus)
-  // SW startup also registers — onInstalled doesn't fire on browser restart.
   registerContextMenus()
 
   chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -109,11 +193,27 @@ export default defineBackground(() => {
     }
   })
 
-  // Initial badge sync + watcher. SWs in MV3 sleep between events; the
-  // watcher re-attaches whenever the SW wakes, and we run an initial
-  // pass so cold starts don't show a stale count.
   void todosItem.getValue().then((v) => updateBadge(v as TodoItem[]))
   todosItem.watch((next) => {
     void updateBadge(next as TodoItem[])
+  })
+
+  // ── GitHub auto-sync alarm (Phase 02) ─────────────────────────────────────
+  // Re-create the alarm on every SW startup so the period reflects the current
+  // user preference. chrome.alarms.create with the same name replaces any
+  // existing alarm, so this is idempotent.
+  void setupGhAlarm()
+
+  chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === ALARM_GH_SYNC) {
+      void runSync({ manual: false })
+    }
+  })
+
+  // Re-create alarm if the user changes the refresh interval in Options.
+  githubUiItem.watch((next, prev) => {
+    if (next?.refreshIntervalMin !== prev?.refreshIntervalMin) {
+      void setupGhAlarm()
+    }
   })
 })

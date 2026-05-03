@@ -1,5 +1,7 @@
 import { CheckSquare, ExternalLink, Github, Settings } from "lucide-react"
 
+import type { ComponentType } from "react"
+import { PrApp } from "~/entrypoints/glimpse.content/components/github/PrApp"
 import type { AppDefinition } from "./types"
 
 const PlaceholderRenderer = () => null
@@ -27,9 +29,8 @@ const ALL_APPS: AppDefinition[] = [
     id: "github",
     name: "GitHub PRs",
     Icon: Github,
-    Renderer: PlaceholderRenderer,
-    // Hidden until phases/02-github-prs ships.
-    enabled: false
+    Renderer: PrApp as unknown as ComponentType,
+    enabled: true
   },
   {
     id: "settings",

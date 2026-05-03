@@ -13,6 +13,7 @@ import {
 
 import { usePrefersReducedMotion } from "../hooks/useTheme"
 import { useViewportWidth } from "../hooks/useViewportWidth"
+import { PrApp } from "./github/PrApp"
 import { TodoApp } from "./todo/TodoApp"
 
 interface GlimpsePanelProps {
@@ -185,11 +186,9 @@ export function GlimpsePanel({
           }}
           className="flex flex-col overflow-hidden rounded-2xl">
           {app.id === "todo" ? (
-            // TODO app owns its own header + body + footer in compact mode.
-            // Other apps fall back to the panel's built-in chrome until they
-            // ship; we'll generalise via AppDefinition.Renderer when GitHub
-            // PRs / Jira land.
             <TodoApp theme={theme} />
+          ) : app.id === "github" ? (
+            <PrApp theme={theme} />
           ) : (
             <>
               <header
