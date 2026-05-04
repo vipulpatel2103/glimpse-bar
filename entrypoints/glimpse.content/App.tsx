@@ -1,4 +1,4 @@
-import { useCallback } from "react"
+import { useCallback, useEffect, useMemo } from "react"
 
 import { APPS } from "~/lib/apps/registry"
 import type { AppDefinition } from "~/lib/apps/types"
@@ -6,9 +6,11 @@ import {
   activeAppItem,
   edgeItem,
   githubUiItem,
+  hiddenAppsItem,
   positionItem,
   todoUiItem,
   transparencyItem,
+  type AppId,
   type Edge,
   type Position
 } from "~/lib/storage"
@@ -20,9 +22,6 @@ import { useStorageItem } from "./hooks/useStorageItem"
 import { useTheme } from "./hooks/useTheme"
 
 const openOptionsPage = () => {
-  // Content scripts can't reliably call chrome.runtime.openOptionsPage()
-  // (it requires the extension's own context). Send a message to the
-  // background service worker, which CAN open it.
   try {
     chrome.runtime?.sendMessage?.({ type: "openOptionsPage" }, (resp) => {
       const err = chrome.runtime.lastError
@@ -55,20 +54,39 @@ const defaultPositionForViewport = (): Position => {
 export default function App() {
   const theme = useTheme()
   const [position, setPosition] = useStorageItem(positionItem)
-  const [edge, setEdge] = useStorageItem(edgeItem)
-  const [transparency] = useStorageItem(transparencyItem)
+  const [edge, setEdge]         = useStorageItem(edgeItem)
+  const [transparency]          = useStorageItem(transparencyItem)
   const [activeAppId, setActiveAppId] = useStorageItem(activeAppItem)
-  const [todoUi]   = useStorageItem(todoUiItem)
-  const [githubUi] = useStorageItem(githubUiItem)
+  const [hiddenApps]            = useStorageItem(hiddenAppsItem)
+  const [todoUi]                = useStorageItem(todoUiItem)
+  const [githubUi]              = useStorageItem(githubUiItem)
 
-  // First render uses fallback {0,0}; convert to right-center if still at origin.
+  // Derive the list of apps shown in the bar.
+  // "settings" can never be hidden (it's the only way back to Options).
+  const visibleApps = useMemo<AppDefinition[]>(
+    () => APPS.filter(
+      (a) => a.id === "settings" || !(hiddenApps as AppId[]).includes(a.id)
+    ),
+    [hiddenApps]
+  )
+
   const displayPosition: Position =
     position.x === 0 && position.y === 0
       ? defaultPositionForViewport()
       : position
 
   const activeApp =
-    APPS.find((a) => a.id === activeAppId && !a.isExternal) ?? null
+    visibleApps.find((a) => a.id === activeAppId && !a.isExternal) ?? null
+
+  // Auto-close the panel if the user hides the currently-active app.
+  useEffect(() => {
+    if (
+      activeAppId &&
+      (hiddenApps as AppId[]).includes(activeAppId as AppId)
+    ) {
+      void setActiveAppId(null)
+    }
+  }, [hiddenApps, activeAppId, setActiveAppId])
 
   const onCommitPosition = useCallback(
     (next: Position, e: Edge) => {
@@ -97,6 +115,7 @@ export default function App() {
     <div className={theme === "dark" ? "dark" : ""}>
       <PopoverPortalProvider>
         <GlimpseBar
+          apps={visibleApps}
           position={displayPosition}
           edge={edge}
           transparency={transparency}
@@ -110,12 +129,12 @@ export default function App() {
           edge={edge}
           theme={theme}
           pinned={
-            (activeApp?.id === "todo"    && todoUi.pinned) ||
-            (activeApp?.id === "github"  && githubUi.pinned)
+            (activeApp?.id === "todo"   && todoUi.pinned) ||
+            (activeApp?.id === "github" && githubUi.pinned)
           }
           expanded={
-            (activeApp?.id === "todo"    && todoUi.expanded) ||
-            (activeApp?.id === "github"  && githubUi.expanded)
+            (activeApp?.id === "todo"   && todoUi.expanded) ||
+            (activeApp?.id === "github" && githubUi.expanded)
           }
           onClose={onClosePanel}
         />

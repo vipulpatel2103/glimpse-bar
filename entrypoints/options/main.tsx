@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import ReactDOM from "react-dom/client"
 
 import { transparencyItem } from "~/lib/storage"
+import { AppVisibilitySection } from "./sections/AppVisibilitySection"
 import { GitHubSection } from "./sections/GitHubSection"
 
 function useTheme(): "light" | "dark" {
@@ -85,6 +86,9 @@ function Options() {
               background, 100% = fully opaque.
             </p>
           </label>
+
+          <hr className="my-6 border-black/[0.08] dark:border-white/[0.08]" />
+          <AppVisibilitySection />
 
           <hr className="my-6 border-black/[0.08] dark:border-white/[0.08]" />
           <GitHubSection />

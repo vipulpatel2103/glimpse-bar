@@ -32,6 +32,7 @@ interface Props {
   now: number
   theme: "light" | "dark"
   onKebab?: (pr: PullRequest, anchor: HTMLElement) => void
+  onHide?: (pr: PullRequest) => void
   onConnectClick: () => void
   onRetry: () => void
 }
@@ -45,6 +46,7 @@ export function PrListView({
   now,
   theme,
   onKebab,
+  onHide,
   onConnectClick,
   onRetry
 }: Props) {
@@ -105,9 +107,9 @@ export function PrListView({
       role="list"
       style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}
     >
-      {groups.map((group) => (
+      {groups.map((group, idx) => (
         <div key={group.key} role="group" aria-label={group.label}>
-          <PrDayHeading label={group.label} theme={theme} />
+          <PrDayHeading label={group.label} theme={theme} isFirst={idx === 0} />
           {group.items.map((pr) => (
             <div key={pr.id} role="listitem">
               <PrCardRow
@@ -115,6 +117,8 @@ export function PrListView({
                 now={now}
                 theme={theme}
                 onKebab={onKebab}
+                onHide={onHide}
+                isHidden={hidden.includes(pr.id)}
               />
             </div>
           ))}

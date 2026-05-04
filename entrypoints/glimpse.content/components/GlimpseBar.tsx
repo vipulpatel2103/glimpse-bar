@@ -1,6 +1,5 @@
 import { useCallback, useRef, type CSSProperties } from "react"
 
-import { APPS } from "~/lib/apps/registry"
 import type { AppDefinition, AppId } from "~/lib/apps/types"
 import { BAR_WIDTH, type Edge, type Position } from "~/lib/storage"
 
@@ -9,6 +8,7 @@ import { AppIconButton } from "./AppIconButton"
 import { DragHandle } from "./DragHandle"
 
 interface GlimpseBarProps {
+  apps: AppDefinition[]
   position: Position
   edge: Edge
   transparency: number
@@ -21,6 +21,7 @@ interface GlimpseBarProps {
 const clampAlpha = (a: number) => Math.max(0.15, Math.min(1, a))
 
 export function GlimpseBar({
+  apps,
   position,
   edge,
   transparency,
@@ -98,7 +99,7 @@ export function GlimpseBar({
     ...positionStyle
   }
 
-  const settingsIndex = APPS.findIndex((a) => a.id === "settings")
+  const settingsIndex = apps.findIndex((a) => a.id === "settings")
 
   return (
     <div
@@ -110,7 +111,7 @@ export function GlimpseBar({
         "flex flex-col items-center gap-1.5 px-1 py-2 " + radiusClass
       }>
       <DragHandle isDragging={isDragging} {...dragHandlers} />
-      {APPS.map((app, idx) => {
+      {apps.map((app, idx) => {
         const isActive = activeApp === app.id && !app.isExternal
         const insertDividerAbove = idx === settingsIndex
         const label = app.isExternal

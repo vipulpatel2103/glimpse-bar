@@ -12,7 +12,7 @@
 |---|---|---|---|
 | 1 | [`phases/00-setup-and-ui-ux/`](phases/00-setup-and-ui-ux/) | Shipped (2026-04-28) | Bar + Panel + Option Page scaffolding. Drag, transparency, theme. No real app integrations; clicking an app icon opens an empty Glimpse Panel. |
 | 2 | [`phases/01-todo/`](phases/01-todo/) | Shipped (2026-05-01) | Local TODO list as the first real app. Compact + expanded modes, views (Today / Upcoming / Inbox / Completed + custom lists), dates, subtasks, right-click capture, badge counter. Recurring/reminders/notifications/omnibox split into Phase 01b. |
-| 3 | [`phases/02-github-prs/`](phases/02-github-prs/) | **Active — planned (2026-05-02)** | GitHub PR review queue. PAT auth, two tabs (Authored / Review), per-repo toggle, hide PR, background sync via `chrome.alarms`. OAuth and other providers (Bitbucket / GitLab / Azure) deferred. |
+| 3 | [`phases/02-github-prs/`](phases/02-github-prs/) | Shipped (2026-05-04) | GitHub PR review queue. PAT auth, three tabs (Mine / Review / All), viewer header, date-grouped cards with author→reviewer avatar chains and repo color bars, per-repo toggle, hide PR, background sync via `chrome.alarms`. OAuth and other providers (Bitbucket / GitLab / Azure) deferred. |
 | 4 | [`phases/03-jira/`](phases/03-jira/) | Stub — not yet planned | Jira assigned-to-me issues. API token first, OAuth later. |
 | later | (TBD) | — | Calendar, Gmail glance, Linear, command palette, AI summaries. |
 

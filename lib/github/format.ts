@@ -9,6 +9,33 @@ import type {
   ReviewerState
 } from "./types"
 
+// ── Repo color palette ─────────────────────────────────────────────────────
+// Deterministic color per repo key so the same repo always gets the same
+// color across panel renders, even with 100+ repos.
+
+const REPO_COLORS = [
+  "#22c55e", // green
+  "#06b6d4", // cyan
+  "#a855f7", // purple
+  "#f97316", // orange
+  "#ec4899", // pink
+  "#ef4444", // red
+  "#eab308", // yellow
+  "#3b82f6", // blue
+  "#14b8a6", // teal
+  "#f43f5e", // rose
+  "#8b5cf6", // violet
+  "#10b981", // emerald
+] as const
+
+export function getRepoColor(key: string): string {
+  let h = 0
+  for (let i = 0; i < key.length; i++) {
+    h = (h * 31 + key.charCodeAt(i)) & 0xffffffff
+  }
+  return REPO_COLORS[Math.abs(h) % REPO_COLORS.length]
+}
+
 // ── Relative time ──────────────────────────────────────────────────────────
 
 const SEC = 1000

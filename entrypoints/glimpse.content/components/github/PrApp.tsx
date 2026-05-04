@@ -83,6 +83,18 @@ export function PrApp({ theme }: Props) {
     void setHidden(unhidePr(hiddenIds, menuPr.id))
   }, [menuPr, hiddenIds, setHidden])
 
+  /** Quick-action button on each card: hides if visible, unhides if in Hidden view. */
+  const handleDirectToggleHide = useCallback(
+    (pr: PullRequest) => {
+      if (hiddenIds.includes(pr.id)) {
+        void setHidden(unhidePr(hiddenIds, pr.id))
+      } else {
+        void setHidden(hidePr(hiddenIds, pr.id))
+      }
+    },
+    [hiddenIds, setHidden]
+  )
+
   // ── Navigation ──────────────────────────────────────────────────────────
   const handleTabChange = useCallback(
     (tab: PrTab) => {
@@ -156,6 +168,7 @@ export function PrApp({ theme }: Props) {
         now={now}
         theme={theme}
         onKebab={handleKebab}
+        onHide={handleDirectToggleHide}
         onConnectClick={handleConnectClick}
         onRetry={handleRefresh}
       />

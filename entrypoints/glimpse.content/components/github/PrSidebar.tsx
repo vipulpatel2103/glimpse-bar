@@ -1,6 +1,5 @@
 import {
   EyeOff,
-  GitBranch,
   GitPullRequest,
   Github,
   Inbox,
@@ -8,6 +7,7 @@ import {
   type LucideIcon
 } from "lucide-react"
 
+import { getRepoColor } from "~/lib/github/format"
 import type { PrCounts } from "~/lib/github/selectors"
 import type { GitHubView, PrTab, RepoKey } from "~/lib/github/types"
 
@@ -100,6 +100,7 @@ export function PrSidebar({ theme, activeView, counts, onChangeView }: Props) {
             </div>
             {repoEntries.map(([key, count]) => {
               const selected = activeView === key
+              const repoColor = getRepoColor(key)
               return (
                 <button
                   key={key}
@@ -109,7 +110,17 @@ export function PrSidebar({ theme, activeView, counts, onChangeView }: Props) {
                   title={key}
                   className={`${itemBase} ${selected ? activeStyle : ""}`}
                 >
-                  <GitBranch size={12} strokeWidth={2} aria-hidden="true" style={{ flexShrink: 0 }} />
+                  {/* Color swatch — same 3px bar as the PR cards */}
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 3,
+                      height: 14,
+                      borderRadius: 2,
+                      flexShrink: 0,
+                      backgroundColor: repoColor
+                    }}
+                  />
                   <span
                     className="flex-1 truncate font-mono text-[11px]"
                     style={{ color: muted }}

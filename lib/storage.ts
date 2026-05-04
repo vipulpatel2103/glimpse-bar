@@ -1,6 +1,7 @@
 import { storage } from "@wxt-dev/storage"
 
 import type { AppId } from "./apps/types"
+export type { AppId }
 import type {
   GitHubAuthState,
   GitHubUiState,
@@ -36,6 +37,12 @@ export const transparencyItem = storage.defineItem<number>(
 export const activeAppItem = storage.defineItem<AppId | null>(
   "local:gb-active-app",
   { fallback: null }
+)
+
+/** App IDs the user has hidden from the Glimpse Bar. "settings" is never hidden. */
+export const hiddenAppsItem = storage.defineItem<AppId[]>(
+  "local:gb-hidden-apps",
+  { fallback: [] }
 )
 
 // ── TODO phase storage ──────────────────────────────────────────────────
