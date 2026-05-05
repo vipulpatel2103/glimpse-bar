@@ -1,15 +1,17 @@
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
 import {
   githubAuthItem,
+  githubChangesItem,
   githubHiddenItem,
   githubPrsItem,
   githubReposItem,
-  githubUiItem
+  githubUiItem,
 } from "~/lib/storage"
 import { hidePr, unhidePr } from "~/lib/github/mutations"
 import { countByView } from "~/lib/github/selectors"
 import type {
+  ChangeEvent,
   GitHubAuthState,
   GitHubUiState,
   GitHubView,
@@ -23,6 +25,7 @@ import { useNowTick } from "../../hooks/useNowTick"
 import { useStorageItem } from "../../hooks/useStorageItem"
 import { useViewportWidth } from "../../hooks/useViewportWidth"
 import type { ContextMenuAnchor } from "../todo/ContextMenu"
+import { ChangesView } from "./ChangesView"
 import { PrContextMenu } from "./PrContextMenu"
 import { PrHeader } from "./PrHeader"
 import { PrListView } from "./PrListView"
@@ -41,18 +44,32 @@ export function PrApp({ theme }: Props) {
   const [repos]       = useStorageItem(githubReposItem)
   const [hidden, setHidden] = useStorageItem(githubHiddenItem)
   const [ui, setUi]   = useStorageItem(githubUiItem)
+  const [changes, setChanges] = useStorageItem(githubChangesItem)
 
   const now       = useNowTick(60_000)
   const vw        = useViewportWidth()
   const canExpand = vw >= EXPAND_BREAKPOINT
 
-  const uiState   = ui   as GitHubUiState
-  const authState = auth as GitHubAuthState
-  const prList    = prs    as PullRequest[]
-  const repoList  = repos  as RepoMeta[]
-  const hiddenIds = hidden as PrId[]
+  const uiState   = ui      as GitHubUiState
+  const authState = auth    as GitHubAuthState
+  const prList    = prs     as PullRequest[]
+  const repoList  = repos   as RepoMeta[]
+  const hiddenIds = hidden  as PrId[]
+  const changesList = changes as ChangeEvent[]
 
   const expanded = uiState.expanded && canExpand
+
+  // Unread count at mount time — computed before we reset lastOpenedAt.
+  const [sessionUnread, setSessionUnread] = useState<number>(0)
+
+  // On mount: capture unread count for this session's chip, then clear the dot.
+  useEffect(() => {
+    const lastOpened = uiState.lastOpenedAt ?? 0
+    const unread = changesList.filter((c) => c.createdAt > lastOpened).length
+    setSessionUnread(unread)
+    void setUi({ ...uiState, lastOpenedAt: Date.now() })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // intentionally once on mount
 
   const counts = useMemo(
     () => countByView(prList, repoList, hiddenIds),
@@ -105,11 +122,10 @@ export function PrApp({ theme }: Props) {
 
   const handleChangeView = useCallback(
     (view: GitHubView) => {
-      // Selecting a system tab (mine/review/all) also updates activeTab.
       if (view === "mine" || view === "review" || view === "all") {
         void setUi({ ...uiState, activeTab: view, activeView: view })
       } else {
-        // repo key or "hidden" — keep activeTab unchanged
+        // repo key, "hidden", or "changes" — keep activeTab unchanged
         void setUi({ ...uiState, activeView: view })
       }
     },
@@ -119,6 +135,15 @@ export function PrApp({ theme }: Props) {
   const handleToggleExpanded = useCallback(() => {
     void setUi({ ...uiState, expanded: !uiState.expanded })
   }, [uiState, setUi])
+
+  const handleChangesClick = useCallback(() => {
+    void setUi({ ...uiState, activeView: "changes" })
+  }, [uiState, setUi])
+
+  const handleClearChanges = useCallback(() => {
+    void setChanges([])
+    void setUi({ ...uiState, activeView: uiState.activeTab })
+  }, [setChanges, uiState, setUi])
 
   // ── Sync ────────────────────────────────────────────────────────────────
   const handleRefresh = useCallback(() => {
@@ -141,6 +166,8 @@ export function PrApp({ theme }: Props) {
   const isMenuPrHidden = menuPr ? hiddenIds.includes(menuPr.id) : false
 
   // ── Layout ──────────────────────────────────────────────────────────────
+  const isChangesView = uiState.activeView === "changes"
+
   const mainPane = (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, overflow: "hidden" }}>
       {/* Viewer strip */}
@@ -153,25 +180,37 @@ export function PrApp({ theme }: Props) {
         now={now}
         canExpand={canExpand}
         theme={theme}
+        unreadChanges={sessionUnread}
+        totalChanges={changesList.length}
         onTabChange={handleTabChange}
         onToggleExpanded={handleToggleExpanded}
         onRefresh={handleRefresh}
+        onChangesClick={handleChangesClick}
       />
 
-      {/* PR list */}
-      <PrListView
-        auth={authState}
-        ui={uiState}
-        prs={prList}
-        repos={repoList}
-        hidden={hiddenIds}
-        now={now}
-        theme={theme}
-        onKebab={handleKebab}
-        onHide={handleDirectToggleHide}
-        onConnectClick={handleConnectClick}
-        onRetry={handleRefresh}
-      />
+      {/* Changes feed or PR list */}
+      {isChangesView ? (
+        <ChangesView
+          changes={changesList}
+          now={now}
+          theme={theme}
+          onClear={handleClearChanges}
+        />
+      ) : (
+        <PrListView
+          auth={authState}
+          ui={uiState}
+          prs={prList}
+          repos={repoList}
+          hidden={hiddenIds}
+          now={now}
+          theme={theme}
+          onKebab={handleKebab}
+          onHide={handleDirectToggleHide}
+          onConnectClick={handleConnectClick}
+          onRetry={handleRefresh}
+        />
+      )}
     </div>
   )
 
@@ -182,6 +221,7 @@ export function PrApp({ theme }: Props) {
           theme={theme}
           activeView={uiState.activeView}
           counts={counts}
+          totalChanges={changesList.length}
           onChangeView={handleChangeView}
         />
       )}

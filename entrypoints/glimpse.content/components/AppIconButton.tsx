@@ -10,6 +10,7 @@ interface AppIconButtonProps {
   label: string
   isActive?: boolean
   theme: "light" | "dark"
+  badgeDot?: boolean
   onActivate: () => void
   onArrowKey?: (dir: "up" | "down") => void
 }
@@ -20,6 +21,7 @@ function AppIconButtonInner(
     label,
     isActive = false,
     theme,
+    badgeDot = false,
     onActivate,
     onArrowKey
   }: AppIconButtonProps,
@@ -53,29 +55,49 @@ function AppIconButtonInner(
   const iconColor = theme === "dark" ? "#fafafa" : "#171717"
 
   return (
-    <button
-      ref={ref}
-      type="button"
-      aria-label={label}
-      aria-pressed={isActive}
-      onClick={onActivate}
-      onKeyDown={handleKey}
-      style={{
-        backgroundColor: tileBg,
-        border: `1px solid ${tileBorder}`,
-        color: iconColor,
-        boxShadow: isActive
-          ? "0 0 0 2px #3b82f6, 0 1px 3px rgba(0,0,0,0.2)"
-          : "0 1px 3px rgba(0,0,0,0.2)"
-      }}
-      className={
-        "flex h-9 w-9 items-center justify-center rounded-full " +
-        "transition-transform duration-100 " +
-        "hover:brightness-110 active:scale-[0.94] " +
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 focus-visible:ring-offset-neutral-900"
-      }>
-      <Icon size={18} strokeWidth={2.25} aria-hidden="true" />
-    </button>
+    <div style={{ position: "relative", display: "inline-flex" }}>
+      <button
+        ref={ref}
+        type="button"
+        aria-label={label}
+        aria-pressed={isActive}
+        onClick={onActivate}
+        onKeyDown={handleKey}
+        style={{
+          backgroundColor: tileBg,
+          border: `1px solid ${tileBorder}`,
+          color: iconColor,
+          boxShadow: isActive
+            ? "0 0 0 2px #3b82f6, 0 1px 3px rgba(0,0,0,0.2)"
+            : "0 1px 3px rgba(0,0,0,0.2)"
+        }}
+        className={
+          "flex h-9 w-9 items-center justify-center rounded-full " +
+          "transition-transform duration-100 " +
+          "hover:brightness-110 active:scale-[0.94] " +
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 focus-visible:ring-offset-neutral-900"
+        }>
+        <Icon size={18} strokeWidth={2.25} aria-hidden="true" />
+      </button>
+
+      {badgeDot && (
+        <span
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            top: 1,
+            right: 1,
+            width: 9,
+            height: 9,
+            borderRadius: "50%",
+            backgroundColor: "#3b82f6",
+            border: "2px solid rgba(15,15,15,0.9)",
+            pointerEvents: "none",
+            zIndex: 1
+          }}
+        />
+      )}
+    </div>
   )
 }
 

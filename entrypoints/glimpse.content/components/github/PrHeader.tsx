@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion"
-import { Clock, Maximize2, Minimize2, RefreshCw } from "lucide-react"
+import { Bell, Clock, Maximize2, Minimize2, RefreshCw } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 import { formatAgoShort } from "~/lib/github/format"
@@ -14,9 +14,14 @@ interface Props {
   now: number
   canExpand: boolean
   theme: "light" | "dark"
+  /** Unread changes since last panel open (captured at mount time). */
+  unreadChanges: number
+  /** Total events in the change feed — controls chip visibility. */
+  totalChanges: number
   onTabChange: (tab: PrTab) => void
   onToggleExpanded: () => void
   onRefresh: () => void
+  onChangesClick: () => void
 }
 
 const TABS: Array<{ id: PrTab; label: string }> = [
@@ -31,9 +36,12 @@ export function PrHeader({
   now,
   canExpand,
   theme,
+  unreadChanges,
+  totalChanges,
   onTabChange,
   onToggleExpanded,
-  onRefresh
+  onRefresh,
+  onChangesClick
 }: Props) {
   const reduced = usePrefersReducedMotion()
   const muted = theme === "dark" ? "#a3a3a3" : "#737373"
@@ -261,6 +269,55 @@ export function PrHeader({
           )
         })}
       </div>
+
+      {/* Changes chip — always visible once the feed has events */}
+      {totalChanges > 0 && (
+        <button
+          type="button"
+          aria-label={
+            unreadChanges > 0
+              ? `${unreadChanges} new change${unreadChanges > 1 ? "s" : ""}`
+              : "View changes"
+          }
+          title={
+            unreadChanges > 0
+              ? `${unreadChanges} new change${unreadChanges > 1 ? "s" : ""} since last visit`
+              : "View change feed"
+          }
+          onClick={onChangesClick}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 4,
+            height: 22,
+            padding: unreadChanges > 0 ? "0 7px" : "0 6px",
+            borderRadius: 999,
+            cursor: "pointer",
+            flexShrink: 0,
+            fontSize: 11,
+            fontWeight: 700,
+            lineHeight: 1,
+            // Unread: solid blue pill; seen: icon-only ghost button
+            backgroundColor: unreadChanges > 0
+              ? "#3b82f6"
+              : "transparent",
+            border: unreadChanges > 0
+              ? "none"
+              : `1px solid ${theme === "dark" ? "rgba(255,255,255,0.20)" : "rgba(0,0,0,0.18)"}`,
+            color: unreadChanges > 0
+              ? "#ffffff"
+              : muted,
+          }}
+        >
+          <Bell size={11} strokeWidth={2.5} aria-hidden="true" />
+          {unreadChanges > 0 && (
+            <span style={{ fontVariantNumeric: "tabular-nums" }}>
+              {unreadChanges}
+            </span>
+          )}
+        </button>
+      )}
 
       {/* Expand/collapse */}
       {canExpand && (
