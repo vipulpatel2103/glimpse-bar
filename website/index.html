@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Glimpse Bar — A floating peek at your work, on every tab.</title>
+<meta name="description" content="Glimpse Bar is a transparent vertical sidebar that injects on every web page. Peek at your TODOs, GitHub PRs, and (soon) Jira without leaving the tab you're already on." />
+<meta property="og:title" content="Glimpse Bar — A floating peek at your work" />
+<meta property="og:description" content="Tasks, PRs, and tickets — on every page, without context switching." />
+<meta property="og:image" content="assets/icon.png" />
+<link rel="icon" href="assets/icon.png" />
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body class="relative">
+
+<div class="bg-grain"></div>
+<div class="bg-glow"></div>
+
+<!-- decorative rail mirroring the actual product -->
+<aside class="deco-rail" aria-hidden="true">
+  <div class="tile active">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+  </div>
+  <div class="tile">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+  </div>
+  <div class="tile">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 9h6v6H9z"/></svg>
+  </div>
+  <div class="tile">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </div>
+</aside>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="logo-lockup">
+      <img src="assets/icon.png" alt="Glimpse Bar" />
+      <span class="serif text-[22px]">Glimpse Bar</span>
+    </a>
+    <div class="nav-links">
+      <a class="lnk hide-sm" href="#features">Features</a>
+      <a class="lnk hide-sm" href="#soon">Roadmap</a>
+      <a class="lnk" href="privacy.html">Privacy</a>
+      <span class="eyebrow hide-sm" style="font-size:11px;letter-spacing:0.16em;padding-left:8px;border-left:1px solid var(--line);"><span class="dot"></span>v0.1 beta</span>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="section hero" style="border-top: 0; padding-top: clamp(56px, 8vw, 96px);">
+  <div class="container">
+    <div class="reveal" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:24px;margin-bottom:48px;">
+      <div class="eyebrow"><span class="dot"></span>Now in beta · Chrome</div>
+      <div class="section-num">00 / Index</div>
+    </div>
+
+    <div class="hero-grid">
+      <div class="hero-text">
+        <h1 class="headline reveal">
+          A <em>glimpse</em><br/>
+          is all <span class="serif-it" style="color:var(--ink-mute);">you need.</span>
+        </h1>
+
+        <p class="lead reveal" style="margin-top:32px;">
+          Glimpse Bar floats a transparent rail on every web page. Peek at your TODOs and your GitHub PR queue without leaving the tab you're already on. No popups. No new tabs. No context tax.
+        </p>
+
+        <div class="reveal" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:36px;" id="install">
+          <a class="btn btn-primary" href="#install">
+            Add to Chrome
+            <svg class="arr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </a>
+          <a class="btn btn-ghost mono" href="#features" style="font-size:13px;">
+            See what's inside
+          </a>
+        </div>
+
+        <p class="mono reveal" style="margin-top:20px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-faint);">
+          Edge &amp; Firefox · soon
+        </p>
+      </div>
+
+      <div class="reveal hero-video">
+        <div class="video-frame">
+          <div class="chrome">
+            <span></span><span></span><span></span>
+            <div style="margin-left:14px;font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-faint);letter-spacing:0.06em;">demo.mp4</div>
+          </div>
+          <div class="placeholder">
+            <button class="play" aria-label="Play demo">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+            </button>
+            <span class="badge">Video placeholder</span>
+          </div>
+        </div>
+        <p class="mono" style="margin-top:14px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-faint);text-align:right;">
+          0:42 walk-through · drop demo.mp4 here
+        </p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- VALUE PROP -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="reveal" style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:64px;flex-wrap:wrap;gap:20px;">
+      <div style="max-width:48ch;">
+        <div class="eyebrow" style="margin-bottom:18px;">Why it exists</div>
+        <h2 class="h2 serif">
+          Your workflow shouldn't <span class="serif-it">live in another tab.</span>
+        </h2>
+      </div>
+      <p class="lead" style="max-width:42ch;">
+        Every "let me just check &mdash;" is a context switch. Glimpse Bar puts the things you re-check most behind a single click, on the page you're already reading.
+      </p>
+      <div class="section-num" style="align-self:flex-start;">02 / Features</div>
+    </div>
+
+    <!-- Feature 1: Todo -->
+    <div class="feature reveal" style="margin-bottom:120px;">
+      <div class="feature-text">
+        <div class="eyebrow" style="margin-bottom:14px;">01 — Tasks</div>
+        <h3 class="h2 serif">Tasks that don't<br/><span class="serif-it">follow you elsewhere.</span></h3>
+        <p class="lead" style="margin-top:18px;">
+          A clean local TODO list, one keystroke from anywhere. Stored on your machine. No accounts, no sync, no telemetry. Just you and a list that actually disappears when it's done.
+        </p>
+        <ul class="feature-points">
+          <li>Quick-add and check-off without leaving the page.</li>
+          <li>Persistent local storage — survives reloads, never leaves your device.</li>
+          <li>Subtasks, drag-to-reorder, duplicate.</li>
+          <li>Distraction-free. No streaks, no gamification, no nagging.</li>
+        </ul>
+      </div>
+      <div class="feature-shot">
+        <span class="label">Screenshot · todo panel</span>
+      </div>
+    </div>
+
+    <!-- Feature 2: GitHub PRs (reverse layout) -->
+    <div class="feature reverse reveal">
+      <div class="feature-text">
+        <div class="eyebrow" style="margin-bottom:14px;">02 — Reviews</div>
+        <h3 class="h2 serif">PR queue, on the<br/><span class="serif-it">page you're already on.</span></h3>
+        <p class="lead" style="margin-top:18px;">
+          Your review backlog is one peek away. Live CI status, review state, and merge-readiness — without an extra trip to github.com.
+        </p>
+        <ul class="feature-points">
+          <li>Pull requests assigned, requested, or authored — at a glance.</li>
+          <li>CI/CD status surfaced inline. Green, red, or pending.</li>
+          <li>Click to jump straight to merge or approve.</li>
+          <li>Real-time change notifications, quietly.</li>
+        </ul>
+      </div>
+      <div class="feature-shot">
+        <span class="label">Screenshot · github panel</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMING SOON -->
+<section class="section" id="soon">
+  <div class="container">
+    <div class="reveal" style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:48px;flex-wrap:wrap;gap:20px;">
+      <div>
+        <div class="eyebrow" style="margin-bottom:18px;">On the way</div>
+        <h2 class="h2 serif">Soon, <span class="serif-it">in your rail.</span></h2>
+      </div>
+      <p class="lead" style="max-width:38ch;">
+        Each new app is a quiet addition — never a new window, never a new account if it can be avoided.
+      </p>
+      <div class="section-num" style="align-self:flex-start;">03 / Roadmap</div>
+    </div>
+
+    <div class="soon-grid reveal">
+
+      <!-- ── CODE REVIEWS ── -->
+      <div class="soon-category">
+        <span class="cat-label">Code Reviews</span>
+        <span class="cat-badge">GitHub ✓ shipped</span>
+      </div>
+
+      <article class="soon-card">
+        <span class="tag">Next up</span>
+        <div class="icon">
+          <!-- GitLab tanuki -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M22.65 14.39L12 22.13 1.35 14.39a.84.84 0 0 1-.3-.94l1.22-3.78 2.44-7.51a.43.43 0 0 1 .82 0l2.44 7.49h8.1l2.44-7.51a.43.43 0 0 1 .82 0l2.44 7.51 1.22 3.78a.84.84 0 0 1-.34.95z"/></svg>
+        </div>
+        <h4 class="serif" style="font-size:22px;line-height:1.1;letter-spacing:-0.015em;margin-bottom:6px;">GitLab</h4>
+        <p style="color:var(--ink-mute);font-size:14px;line-height:1.55;">MR queue, pipeline status, and review requests — same peek-first model as GitHub, for your GitLab projects.</p>
+      </article>
+
+      <article class="soon-card">
+        <span class="tag">Planned</span>
+        <div class="icon">
+          <!-- Bitbucket -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M.778 1.213a.768.768 0 0 0-.768.892l3.263 19.81c.084.5.515.868 1.022.873H19.95a.772.772 0 0 0 .77-.646l3.27-20.03a.768.768 0 0 0-.768-.891zm13.74 14.317H9.522L8.17 8.466h7.561z"/></svg>
+        </div>
+        <h4 class="serif" style="font-size:22px;line-height:1.1;letter-spacing:-0.015em;margin-bottom:6px;">Bitbucket</h4>
+        <p style="color:var(--ink-mute);font-size:14px;line-height:1.55;">PRs, build status, and merge checks for teams on Atlassian's stack without leaving the page.</p>
+      </article>
+
+      <article class="soon-card">
+        <span class="tag">Planned</span>
+        <div class="icon">
+          <!-- Azure DevOps cycle mark -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M0 18.426l2.046-3.245A8.72 8.72 0 0 0 9.03 18.75a8.75 8.75 0 0 0 4.856-1.459L9.77 12.33v5.082H6.547L8.998 5.07 5.764 5.06zm12.028-14.786 4.17 9.73V8.303h3.175l-2.463 12.329h3.282L24 5.494a8.75 8.75 0 0 0-8.786-1.47l.022.024z"/></svg>
+        </div>
+        <h4 class="serif" style="font-size:22px;line-height:1.1;letter-spacing:-0.015em;margin-bottom:6px;">Azure DevOps</h4>
+        <p style="color:var(--ink-mute);font-size:14px;line-height:1.55;">PR queue and pipeline health for teams on Microsoft's DevOps stack — Repos, Pipelines, and work items.</p>
+      </article>
+
+      <!-- ── PROJECT TRACKING ── -->
+      <div class="soon-category">
+        <span class="cat-label">Project Tracking</span>
+      </div>
+
+      <article class="soon-card">
+        <span class="tag">In design</span>
+        <div class="icon">
+          <!-- Jira wave -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.004-1.005zm5.723-5.756H5.736a5.215 5.215 0 0 0 5.215 5.214h2.129v2.058a5.218 5.218 0 0 0 5.215 5.214V6.762a1.002 1.002 0 0 0-1.001-1.005zm5.701-5.757H11.459a5.215 5.215 0 0 0 5.215 5.215h2.129v2.057A5.215 5.215 0 0 0 24 12.487V1.005A1.002 1.002 0 0 0 22.995 0z"/></svg>
+        </div>
+        <h4 class="serif" style="font-size:22px;line-height:1.1;letter-spacing:-0.015em;margin-bottom:6px;">Jira</h4>
+        <p style="color:var(--ink-mute);font-size:14px;line-height:1.55;">Your sprint backlog, assigned issues, and @mentions — without breaking flow. Read-first, fast updates.</p>
+      </article>
+
+      <article class="soon-card">
+        <span class="tag">Exploring</span>
+        <div class="icon">
+          <!-- Linear geometric mark -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M0 14.956L9.03 24 24 9.027 14.974 0 0 14.956zm.03 2.161l6.897 6.912.023-6.912H.03zm7.146 6.862 9.012-.002-9.012-9.012v9.014zm15.622-6.832l-6.878 6.856.026-6.856h6.852zm-6.878 5.767.003-4.694-4.693-.003 4.69 4.697z"/></svg>
+        </div>
+        <h4 class="serif" style="font-size:22px;line-height:1.1;letter-spacing:-0.015em;margin-bottom:6px;">Linear</h4>
+        <p style="color:var(--ink-mute);font-size:14px;line-height:1.55;">Issue queue, cycle progress, and your inbox — Linear's speed, without the tab switch.</p>
+      </article>
+
+      <!-- ── COMMUNICATION ── -->
+      <div class="soon-category">
+        <span class="cat-label">Communication</span>
+      </div>
+
+      <article class="soon-card">
+        <span class="tag">Exploring</span>
+        <div class="icon">
+          <!-- Slack hashtag grid -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg>
+        </div>
+        <h4 class="serif" style="font-size:22px;line-height:1.1;letter-spacing:-0.015em;margin-bottom:6px;">Slack</h4>
+        <p style="color:var(--ink-mute);font-size:14px;line-height:1.55;">The threads addressed to you, surfaced. Never the firehose. Reply or jump to Slack.</p>
+      </article>
+
+      <article class="soon-card">
+        <span class="tag">Sketching</span>
+        <div class="icon">
+          <!-- Envelope / Email -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        </div>
+        <h4 class="serif" style="font-size:22px;line-height:1.1;letter-spacing:-0.015em;margin-bottom:6px;">Email</h4>
+        <p style="color:var(--ink-mute);font-size:14px;line-height:1.55;">Just the messages worth a moment. A quiet read-only view for Gmail &amp; Outlook — without opening the inbox.</p>
+      </article>
+
+      <article class="soon-card">
+        <span class="tag">Sketching</span>
+        <div class="icon">
+          <!-- Calendar / Meetings -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="12" cy="16" r="1" fill="currentColor"/><circle cx="8" cy="16" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/></svg>
+        </div>
+        <h4 class="serif" style="font-size:22px;line-height:1.1;letter-spacing:-0.015em;margin-bottom:6px;">Meetings</h4>
+        <p style="color:var(--ink-mute);font-size:14px;line-height:1.55;">What's next on your calendar, always visible. Join Google Meet or Teams calls without hunting for the link.</p>
+      </article>
+
+    </div>
+
+    <p class="reveal mono" style="margin-top:36px;font-size:12px;color:var(--ink-faint);letter-spacing:0.06em;max-width:62ch;">
+      Have something you'd peek at every five minutes? <a href="https://github.com" style="color:var(--ink);text-decoration:underline;text-underline-offset:3px;">Open an issue on GitHub &rarr;</a>
+    </p>
+  </div>
+</section>
+
+<!-- PRINCIPLES -->
+<section class="section">
+  <div class="container">
+    <div class="reveal" style="display:grid;grid-template-columns:1fr 1.6fr;gap:64px;align-items:start;">
+      <div style="position:sticky;top:96px;">
+        <div class="eyebrow" style="margin-bottom:18px;">Principles</div>
+        <div class="section-num" style="margin-bottom:32px;">04 / How it behaves</div>
+        <h2 class="serif" style="font-size:clamp(32px,3.2vw,48px);line-height:1.08;letter-spacing:-0.02em;margin-bottom:20px;">
+          Built to stay<br/><span class="serif-it">out of the way.</span>
+        </h2>
+        <p style="color:var(--ink-mute);font-size:15px;line-height:1.65;max-width:30ch;">
+          Three constraints we set before writing the first line of code — and haven't broken since.
+        </p>
+      </div>
+      <div style="display:grid;gap:36px;">
+        <div style="display:grid;grid-template-columns:80px 1fr;gap:24px;align-items:baseline;">
+          <span class="serif" style="font-size:48px;color:var(--accent-2);">01</span>
+          <div>
+            <h3 class="serif" style="font-size:28px;line-height:1.1;margin-bottom:6px;">Quiet by default.</h3>
+            <p style="color:var(--ink-mute);font-size:15px;line-height:1.6;">
+              The bar fades into the chrome. Adjustable transparency. No badges. No notification dots unless you ask for them.
+            </p>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:80px 1fr;gap:24px;align-items:baseline;">
+          <span class="serif" style="font-size:48px;color:var(--accent-2);">02</span>
+          <div>
+            <h3 class="serif" style="font-size:28px;line-height:1.1;margin-bottom:6px;">Local first.</h3>
+            <p style="color:var(--ink-mute);font-size:15px;line-height:1.6;">
+              Your tasks live on your device. API tokens for GitHub stay in extension storage. No analytics, no servers we own.
+            </p>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:80px 1fr;gap:24px;align-items:baseline;">
+          <span class="serif" style="font-size:48px;color:var(--accent-2);">03</span>
+          <div>
+            <h3 class="serif" style="font-size:28px;line-height:1.1;margin-bottom:6px;">One motion language.</h3>
+            <p style="color:var(--ink-mute);font-size:15px;line-height:1.6;">
+              Every panel slides in over 280–340ms. No springs, no overshoots. Honors <code style="font-family:'Geist Mono',monospace;font-size:13px;background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:4px;border:1px solid var(--line);">prefers-reduced-motion</code> on day one.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA strip -->
+<section class="section">
+  <div class="container">
+    <div class="reveal" style="text-align:center;max-width:48ch;margin:0 auto;">
+      <div class="eyebrow" style="margin-bottom:24px;"><span class="dot"></span>Free · no account · your data stays on your device</div>
+      <h2 class="h2 serif">
+        Stop opening tabs <span class="serif-it">just to check.</span>
+      </h2>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:32px;">
+        <a class="btn btn-primary" href="#install">
+          Install for Chrome
+          <svg class="arr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+      </div>
+      <p class="mono" style="margin-top:18px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-faint);">Edge &amp; Firefox builds · coming soon</p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="row">
+      <div>
+        <a href="index.html" class="logo-lockup">
+          <img src="assets/icon.png" alt="Glimpse Bar" />
+          <span class="serif" style="font-size:22px;">Glimpse Bar</span>
+        </a>
+        <p style="color:var(--ink-faint);font-size:13px;max-width:38ch;margin-top:12px;line-height:1.55;">
+          A peek-only sidebar for the things you re-check most. Built quietly in Chrome, Edge, and Firefox.
+        </p>
+      </div>
+      <div style="display:flex;gap:48px;flex-wrap:wrap;">
+        <div>
+          <div class="meta" style="margin-bottom:14px;">Product</div>
+          <div style="display:grid;gap:8px;">
+            <a class="lnk" style="color:var(--ink-mute);font-size:14px;text-decoration:none;" href="#features">Features</a>
+            <a class="lnk" style="color:var(--ink-mute);font-size:14px;text-decoration:none;" href="#soon">Roadmap</a>
+            <a class="lnk" style="color:var(--ink-mute);font-size:14px;text-decoration:none;" href="#install">Install</a>
+          </div>
+        </div>
+        <div>
+          <div class="meta" style="margin-bottom:14px;">Support</div>
+          <div style="display:grid;gap:8px;">
+            <a class="lnk" style="color:var(--ink-mute);font-size:14px;text-decoration:none;" href="https://github.com">GitHub Issues</a>
+            <a class="lnk" style="color:var(--ink-mute);font-size:14px;text-decoration:none;" href="privacy.html">Privacy</a>
+            <a class="lnk" style="color:var(--ink-mute);font-size:14px;text-decoration:none;" href="mailto:hello@glimpse-bar.app">Email</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:56px;padding-top:24px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+      <div class="meta">© <span data-year>2026</span> Glimpse Bar — free to use</div>
+      <div class="meta">Made for the tabs you've already opened</div>
+    </div>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
