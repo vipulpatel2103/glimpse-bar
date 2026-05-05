@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Privacy Policy — Glimpse Bar</title>
+<meta name="description" content="Glimpse Bar stores your tasks locally and never phones home. Read the boring details." />
+<link rel="icon" href="assets/icon.png" />
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body class="relative">
+
+<div class="bg-grain"></div>
+<div class="bg-glow"></div>
+
+<aside class="deco-rail" aria-hidden="true">
+  <div class="tile">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+  </div>
+  <div class="tile">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+  </div>
+  <div class="tile active">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+  </div>
+</aside>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="logo-lockup">
+      <img src="assets/icon.png" alt="Glimpse Bar" />
+      <span class="serif text-[22px]">Glimpse Bar</span>
+    </a>
+    <div class="nav-links">
+      <a class="lnk" href="index.html">Home</a>
+      <a class="lnk" href="index.html#features">Features</a>
+      <a class="lnk" href="https://github.com">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<header class="section" style="border-top:0;padding-top:clamp(56px,8vw,96px);padding-bottom:48px;">
+  <div class="container">
+    <div class="reveal" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:24px;margin-bottom:36px;">
+      <div class="eyebrow">Last updated · 2026-05-05</div>
+      <div class="section-num">PP / Privacy</div>
+    </div>
+    <h1 class="headline reveal" style="font-size:clamp(40px,5.6vw,80px);">
+      Privacy<br/>
+      <em>policy.</em>
+    </h1>
+  </div>
+</header>
+
+<section class="section" style="border-top:0;padding-top:0;padding-bottom:clamp(80px,12vw,144px);">
+  <div class="container">
+    <article class="prose reveal">
+
+      <p style="font-size:18px;color:var(--ink);line-height:1.6;">
+        Glimpse Bar collects nothing. Your data never leaves your device.
+      </p>
+
+      <h2>What's stored</h2>
+      <p>Everything Glimpse Bar stores — your tasks, settings, API tokens, and cached responses — lives in <code>chrome.storage.local</code> on your own machine. We have no servers. There is no Glimpse Bar account.</p>
+
+      <h2>What we don't collect</h2>
+      <ul>
+        <li>No analytics or telemetry</li>
+        <li>No browsing history</li>
+        <li>No error reports or usage pings</li>
+        <li>No advertising IDs or fingerprinting</li>
+      </ul>
+
+      <h2>Third-party connections</h2>
+      <p>When you connect a service like GitHub, the extension calls that API directly from your browser using credentials you provide. We are not in the data path. Each service's own privacy policy applies.</p>
+
+      <h2>Deleting your data</h2>
+      <p>Uninstall the extension. The browser automatically purges all extension storage on removal.</p>
+
+      <h2>Changes</h2>
+      <p>If anything here changes, we'll update the date above and note it in the release changelog.</p>
+
+      <h2>Contact</h2>
+      <p>Questions? Email <a href="mailto:glimpse.bar@gmail.com">glimpse.bar@gmail.com</a>.</p>
+
+    </article>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="row">
+      <a href="index.html" class="logo-lockup">
+        <img src="assets/icon.png" alt="Glimpse Bar" />
+        <span class="serif" style="font-size:22px;">Glimpse Bar</span>
+      </a>
+      <div class="meta">© <span data-year>2026</span> · <a class="lnk" style="color:var(--ink-mute);text-decoration:none;" href="https://github.com">GitHub</a> · <a class="lnk" style="color:var(--ink-mute);text-decoration:none;" href="index.html">Home</a></div>
+    </div>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
