@@ -81,7 +81,7 @@ export interface RepoMeta {
   discoveredAt: number
 }
 
-export type GitHubView = PrTab | RepoKey | "hidden"
+export type GitHubView = PrTab | RepoKey | "hidden" | "changes"
 
 export interface GitHubUiState {
   /** Active tab in the segmented control. */
@@ -89,7 +89,7 @@ export interface GitHubUiState {
   expanded: boolean
   pinned: boolean
   sidebarCollapsed: boolean
-  /** Active view in the sidebar (tab, repo key, or "hidden"). */
+  /** Active view in the sidebar (tab, repo key, "hidden", or "changes"). */
   activeView: GitHubView
   /** Auto-refresh interval in minutes (1 | 5 | 15 | 30 | 60). */
   refreshIntervalMin: number
@@ -97,7 +97,46 @@ export interface GitHubUiState {
   lastSyncError?: string
   /** Epoch when the rate-limit chip should clear. */
   rateLimitResetAt?: number
+  /** Epoch when the GitHub panel was last opened — used to compute unread dot. */
+  lastOpenedAt?: number
 }
+
+// ── Change feed ─────────────────────────────────────────────────────────────
+
+export type ChangeEventType =
+  | "new_review_request"
+  | "new_mine"
+  | "ci_failure"
+  | "ci_success"
+  | "approved"
+  | "changes_requested"
+  | "conflict"
+  | "merged"
+
+export interface ChangeEvent {
+  id: string
+  prId: PrId
+  prNumber: number
+  prTitle: string
+  repo: RepoKey
+  prUrl: string
+  type: ChangeEventType
+  /** Reviewer login for approved / changes_requested events. */
+  detail?: string
+  createdAt: number
+}
+
+/** Per-PR snapshot used to diff state between syncs. */
+export type NotifBaseline = Record<
+  PrId,
+  {
+    ciState: CiState
+    reviewDecision: ReviewDecision
+    fromTab: Array<"mine" | "review">
+    mergeState: MergeState
+    state: "open" | "closed" | "merged"
+  }
+>
 
 export interface GitHubAuthState {
   /** PAT stored in sync: namespace. Never logged or echoed back to UI. */

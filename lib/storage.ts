@@ -3,8 +3,10 @@ import { storage } from "@wxt-dev/storage"
 import type { AppId } from "./apps/types"
 export type { AppId }
 import type {
+  ChangeEvent,
   GitHubAuthState,
   GitHubUiState,
+  NotifBaseline,
   PrId,
   PullRequest,
   RepoMeta
@@ -105,4 +107,16 @@ export const githubUiItem = storage.defineItem<GitHubUiState>(
       refreshIntervalMin: 5
     }
   }
+)
+
+/** Change-feed events (newest first, capped at 50). */
+export const githubChangesItem = storage.defineItem<ChangeEvent[]>(
+  "local:gb-github-changes",
+  { fallback: [] }
+)
+
+/** Per-PR state snapshot for diffing on each sync. */
+export const githubNotifBaselineItem = storage.defineItem<NotifBaseline>(
+  "local:gb-github-notif-baseline",
+  { fallback: {} }
 )

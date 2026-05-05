@@ -1,4 +1,5 @@
 import {
+  Bell,
   EyeOff,
   GitPullRequest,
   Github,
@@ -15,6 +16,7 @@ interface Props {
   theme: "light" | "dark"
   activeView: GitHubView
   counts: PrCounts
+  totalChanges: number
   onChangeView: (view: GitHubView) => void
 }
 
@@ -32,7 +34,7 @@ const SYSTEM_ROWS: SystemRow[] = [
   { id: "hidden", label: "Hidden",          Icon: EyeOff,         count: (c) => c.hidden }
 ]
 
-export function PrSidebar({ theme, activeView, counts, onChangeView }: Props) {
+export function PrSidebar({ theme, activeView, counts, totalChanges, onChangeView }: Props) {
   const muted = theme === "dark" ? "#a3a3a3" : "#737373"
   const divider = theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"
   const activeStyle = "bg-black/[0.06] dark:bg-white/[0.10] font-semibold"
@@ -62,6 +64,22 @@ export function PrSidebar({ theme, activeView, counts, onChangeView }: Props) {
       </div>
 
       <div className="flex flex-1 flex-col gap-px overflow-y-auto p-2">
+        {/* What's New row — only when there are events */}
+        {totalChanges > 0 && (
+          <button
+            type="button"
+            onClick={() => onChangeView("changes")}
+            aria-current={activeView === "changes" ? "page" : undefined}
+            className={`${itemBase} ${activeView === "changes" ? activeStyle : ""}`}
+          >
+            <Bell size={14} strokeWidth={2} aria-hidden="true" />
+            <span className="flex-1 truncate">What&apos;s New</span>
+            <span className="text-[12px] tabular-nums" style={{ color: muted }}>
+              {totalChanges}
+            </span>
+          </button>
+        )}
+
         {/* System views */}
         {SYSTEM_ROWS.map(({ id, label, Icon, count }) => {
           const selected = activeView === id

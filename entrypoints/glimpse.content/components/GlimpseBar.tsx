@@ -14,6 +14,8 @@ interface GlimpseBarProps {
   transparency: number
   theme: "light" | "dark"
   activeApp: AppId | null
+  /** Per-app unread dot. Key = app.id, value = true to show the dot. */
+  badges?: Partial<Record<string, boolean>>
   onCommitPosition: (next: Position, edge: Edge) => void
   onActivateApp: (app: AppDefinition) => void
 }
@@ -27,6 +29,7 @@ export function GlimpseBar({
   transparency,
   theme,
   activeApp,
+  badges,
   onCommitPosition,
   onActivateApp
 }: GlimpseBarProps) {
@@ -133,6 +136,7 @@ export function GlimpseBar({
               label={label}
               isActive={isActive}
               theme={theme}
+              badgeDot={badges?.[app.id] ?? false}
               onActivate={() => onActivateApp(app)}
               onArrowKey={(dir) => handleArrow(idx, dir)}
             />

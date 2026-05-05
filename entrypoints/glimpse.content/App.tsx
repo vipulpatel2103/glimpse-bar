@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo } from "react"
 
 import { APPS } from "~/lib/apps/registry"
 import type { AppDefinition } from "~/lib/apps/types"
+import type { ChangeEvent, GitHubUiState } from "~/lib/github/types"
 import {
   activeAppItem,
   edgeItem,
+  githubChangesItem,
   githubUiItem,
   hiddenAppsItem,
   positionItem,
@@ -60,6 +62,7 @@ export default function App() {
   const [hiddenApps]            = useStorageItem(hiddenAppsItem)
   const [todoUi]                = useStorageItem(todoUiItem)
   const [githubUi]              = useStorageItem(githubUiItem)
+  const [githubChanges]         = useStorageItem(githubChangesItem)
 
   // Derive the list of apps shown in the bar.
   // "settings" can never be hidden (it's the only way back to Options).
@@ -69,6 +72,13 @@ export default function App() {
     ),
     [hiddenApps]
   )
+
+  // Blue dot on the GitHub icon when there are unread change events.
+  const githubHasDot = useMemo(() => {
+    const changes = githubChanges as ChangeEvent[]
+    const lastOpened = (githubUi as GitHubUiState).lastOpenedAt ?? 0
+    return changes.some((c) => c.createdAt > lastOpened)
+  }, [githubChanges, githubUi])
 
   const displayPosition: Position =
     position.x === 0 && position.y === 0
@@ -121,6 +131,7 @@ export default function App() {
           transparency={transparency}
           theme={theme}
           activeApp={activeAppId}
+          badges={{ github: githubHasDot }}
           onCommitPosition={onCommitPosition}
           onActivateApp={onActivateApp}
         />

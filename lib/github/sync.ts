@@ -3,10 +3,13 @@
 
 import { RateLimitError, fetchPrSnapshot, recheckMergeableWithMap } from "./api"
 import { mergePrs, patchMergeState } from "./mutations"
+import { appendChanges, buildBaseline, diffPrState } from "./notif"
 import { discoverRepos } from "./selectors"
 import {
   githubAuthItem,
+  githubChangesItem,
   githubHiddenItem,
+  githubNotifBaselineItem,
   githubPrsItem,
   githubReposItem,
   githubUiItem
@@ -41,6 +44,19 @@ export async function runSync(_opts: SyncOptions): Promise<void> {
 
     const existingRepos = await githubReposItem.getValue()
     await githubReposItem.setValue(discoverRepos(merged, existingRepos))
+
+    // Diff vs baseline and push change events. Skip on first ever sync
+    // (baseline empty) to avoid an initial notification storm.
+    const baseline = await githubNotifBaselineItem.getValue()
+    const isFirstSync = Object.keys(baseline).length === 0
+    if (!isFirstSync) {
+      const events = diffPrState(baseline, merged)
+      if (events.length > 0) {
+        const existingChanges = await githubChangesItem.getValue()
+        await githubChangesItem.setValue(appendChanges(existingChanges, events))
+      }
+    }
+    await githubNotifBaselineItem.setValue(buildBaseline(merged))
 
     // Refresh viewer info in case display name / avatar changed.
     await githubAuthItem.setValue({

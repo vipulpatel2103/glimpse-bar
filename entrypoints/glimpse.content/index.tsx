@@ -51,6 +51,13 @@ export default defineContentScript({
     ui.mount()
     forceHostStacking()
 
+    // When the extension is reloaded/updated, ctx.signal aborts (extension
+    // context invalidated). Reload the page so a fresh content script is
+    // injected — avoids orphaned React trees trying to use dead chrome APIs.
+    ctx.signal.addEventListener("abort", () => {
+      window.location.reload()
+    }, { once: true })
+
     // SPA resilience: if a host page replaces document.body (e.g. ChatGPT
     // routes), our custom element gets removed. Re-mount and re-stack.
     ctx.addEventListener(window, "wxt:locationchange", () => {
