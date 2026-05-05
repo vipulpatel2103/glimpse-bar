@@ -112,9 +112,11 @@ export default function App() {
         openOptionsPage()
         return
       }
-      void setActiveAppId(app.id)
+      // Toggle: clicking the active app's icon closes the panel. Bypasses
+      // `pinned` because this is a deliberate close, not outside-click.
+      void setActiveAppId(activeAppId === app.id ? null : app.id)
     },
-    [setActiveAppId]
+    [activeAppId, setActiveAppId]
   )
 
   const onClosePanel = useCallback(() => {

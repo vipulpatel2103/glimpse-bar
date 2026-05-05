@@ -285,6 +285,20 @@ html, body {
   backdrop-filter: blur(6px);
 }
 
+/* ----------------- Feature screenshot images ----------------- */
+.feature-shot-img {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+.feature-shot-img img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 12px;
+}
+
 /* ----------------- Feature blocks ----------------- */
 .feature {
   display: grid;
