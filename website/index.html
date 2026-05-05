@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Glimpse Bar — A floating peek at your work, on every tab.</title>
-<meta name="description" content="Glimpse Bar is a transparent vertical sidebar that injects on every web page. Peek at your TODOs, GitHub PRs, and (soon) Jira without leaving the tab you're already on." />
+<meta name="description" content="Glimpse Bar is a transparent vertical sidebar that injects on every web page. Manage your tasks, track plans, and review GitHub PRs — all without leaving the tab you're already on." />
 <meta property="og:title" content="Glimpse Bar — A floating peek at your work" />
 <meta property="og:description" content="Tasks, PRs, and tickets — on every page, without context switching." />
 <meta property="og:image" content="assets/icon.png" />
@@ -44,7 +44,7 @@
       <a class="lnk hide-sm" href="#features">Features</a>
       <a class="lnk hide-sm" href="#soon">Roadmap</a>
       <a class="lnk" href="privacy.html">Privacy</a>
-      <span class="eyebrow hide-sm" style="font-size:11px;letter-spacing:0.16em;padding-left:8px;border-left:1px solid var(--line);"><span class="dot"></span>v0.1 beta</span>
+      <span class="eyebrow hide-sm" style="font-size:11px;letter-spacing:0.16em;padding-left:8px;border-left:1px solid var(--line);"><span class="dot"></span>v1.0.0</span>
     </div>
   </div>
 </nav>
@@ -53,7 +53,7 @@
 <header class="section hero" style="border-top: 0; padding-top: clamp(56px, 8vw, 96px);">
   <div class="container">
     <div class="reveal" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:24px;margin-bottom:48px;">
-      <div class="eyebrow"><span class="dot"></span>Now in beta · Chrome</div>
+      <div class="eyebrow"><span class="dot"></span>v1.0.0 · Chrome</div>
       <div class="section-num">00 / Index</div>
     </div>
 
@@ -65,7 +65,7 @@
         </h1>
 
         <p class="lead reveal" style="margin-top:32px;">
-          Glimpse Bar floats a transparent rail on every web page. Peek at your TODOs and your GitHub PR queue without leaving the tab you're already on. No popups. No new tabs. No context tax.
+          Glimpse Bar floats a transparent rail on every web page. Manage your tasks, track plans, and stay on top of your GitHub PR queue — without leaving the tab you're already on. No popups. No new tabs. No context tax.
         </p>
 
         <div class="reveal" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:36px;" id="install">
@@ -126,17 +126,18 @@
         <div class="eyebrow" style="margin-bottom:14px;">01 — Tasks</div>
         <h3 class="h2 serif">Tasks that don't<br/><span class="serif-it">follow you elsewhere.</span></h3>
         <p class="lead" style="margin-top:18px;">
-          A clean local TODO list, one keystroke from anywhere. Stored on your machine. No accounts, no sync, no telemetry. Just you and a list that actually disappears when it's done.
+          Capture tasks, jot plans, and check things off — all stored locally on your machine. No accounts, no sync, no telemetry. Just you and a list that actually disappears when it's done.
         </p>
         <ul class="feature-points">
           <li>Quick-add and check-off without leaving the page.</li>
           <li>Persistent local storage — survives reloads, never leaves your device.</li>
-          <li>Subtasks, drag-to-reorder, duplicate.</li>
+          <li>Custom groups — organise tasks into named buckets your way.</li>
+          <li>Schedule a plan for a date and let it surface when it matters.</li>
           <li>Distraction-free. No streaks, no gamification, no nagging.</li>
         </ul>
       </div>
       <div class="feature-shot">
-        <span class="label">Screenshot · todo panel</span>
+        <span class="label">Screenshot · tasks panel</span>
       </div>
     </div>
 
@@ -276,9 +277,6 @@
 
     </div>
 
-    <p class="reveal mono" style="margin-top:36px;font-size:12px;color:var(--ink-faint);letter-spacing:0.06em;max-width:62ch;">
-      Have something you'd peek at every five minutes? <a href="https://github.com" style="color:var(--ink);text-decoration:underline;text-underline-offset:3px;">Open an issue on GitHub &rarr;</a>
-    </p>
   </div>
 </section>
 
@@ -375,7 +373,7 @@
           <div style="display:grid;gap:8px;">
             <a class="lnk" style="color:var(--ink-mute);font-size:14px;text-decoration:none;" href="https://github.com">GitHub Issues</a>
             <a class="lnk" style="color:var(--ink-mute);font-size:14px;text-decoration:none;" href="privacy.html">Privacy</a>
-            <a class="lnk" style="color:var(--ink-mute);font-size:14px;text-decoration:none;" href="mailto:hello@glimpse-bar.app">Email</a>
+            <a class="lnk" style="color:var(--ink-mute);font-size:14px;text-decoration:none;" href="mailto:glimpse.bar@gmail.com">Email</a>
           </div>
         </div>
       </div>

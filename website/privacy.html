@@ -50,9 +50,6 @@
       Privacy<br/>
       <em>policy.</em>
     </h1>
-    <p class="lead reveal" style="margin-top:32px;max-width:62ch;">
-      The short version: your tasks live on your device, your tokens stay in extension storage, and we run no servers, no analytics, no telemetry. The long version is below, written in plain English.
-    </p>
   </div>
 </header>
 
@@ -60,90 +57,32 @@
   <div class="container">
     <article class="prose reveal">
 
-      <h2>1. Who we are</h2>
-      <p>
-        <strong>Glimpse Bar</strong> is a browser extension developed and maintained as an independent project. Throughout this policy, "we", "us", and "the extension" refer to Glimpse Bar; "you" refers to the person who installed it.
+      <p style="font-size:18px;color:var(--ink);line-height:1.6;">
+        Glimpse Bar collects nothing. Your data never leaves your device.
       </p>
 
-      <h2>2. The headline</h2>
-      <p>
-        Glimpse Bar is a <strong>local-first</strong> tool. Almost everything you do with it &mdash; your tasks, your settings, your bar position &mdash; is stored on your machine using the browser's own extension storage APIs. We don't operate any servers that hold your data. There is no Glimpse Bar account.
-      </p>
+      <h2>What's stored</h2>
+      <p>Everything Glimpse Bar stores — your tasks, settings, API tokens, and cached responses — lives in <code>chrome.storage.local</code> on your own machine. We have no servers. There is no Glimpse Bar account.</p>
 
-      <h2>3. What gets stored, and where</h2>
-
-      <h3>On your device only</h3>
+      <h2>What we don't collect</h2>
       <ul>
-        <li><strong>TODO list:</strong> task text, completion state, ordering, subtasks. Stored via <code>chrome.storage.local</code>.</li>
-        <li><strong>Bar settings:</strong> transparency level, position, which apps are pinned. Stored the same way.</li>
-        <li><strong>API tokens you supply</strong> (e.g. a GitHub personal access token, future Jira credentials): stored in <code>chrome.storage.local</code>. They never leave your device except to talk to the API they belong to.</li>
-        <li><strong>Cached responses</strong> from third-party APIs (your PR list, your Jira queue) so the panel feels fast on reopen. Cleared when you uninstall.</li>
+        <li>No analytics or telemetry</li>
+        <li>No browsing history</li>
+        <li>No error reports or usage pings</li>
+        <li>No advertising IDs or fingerprinting</li>
       </ul>
 
-      <h3>What we explicitly do not collect</h3>
-      <ul>
-        <li>No analytics — we do not run Google Analytics, Plausible, Amplitude, PostHog, or anything similar.</li>
-        <li>No telemetry — we do not send usage events, error reports, or "anonymous" pings.</li>
-        <li>No browsing history — we do not record which pages you visit, even though the extension runs on every page.</li>
-        <li>No fingerprinting — we don't read your user agent, screen size, or installed extensions to identify you.</li>
-        <li>No advertising IDs.</li>
-      </ul>
+      <h2>Third-party connections</h2>
+      <p>When you connect a service like GitHub, the extension calls that API directly from your browser using credentials you provide. We are not in the data path. Each service's own privacy policy applies.</p>
 
-      <h2>4. Third-party services you may connect</h2>
-      <p>
-        Glimpse Bar integrates with services <em>you choose</em> to connect:
-      </p>
-      <ul>
-        <li><strong>GitHub:</strong> if you supply a personal access token, the extension calls the GitHub REST and GraphQL APIs from your browser to fetch your pull request queue. GitHub may log those requests under their own privacy terms.</li>
-        <li><strong>Jira</strong> (planned): same model &mdash; your credentials, your browser, direct calls to Atlassian.</li>
-      </ul>
-      <p>
-        Network requests to these services originate from <em>your browser</em>, not from any server we control. We are not in the data path. Each provider's own privacy policy governs what they do with the request on their end.
-      </p>
+      <h2>Deleting your data</h2>
+      <p>Uninstall the extension. The browser automatically purges all extension storage on removal.</p>
 
-      <h2>5. Permissions the extension requests, and why</h2>
-      <ul>
-        <li><strong>Host permissions <code>&lt;all_urls&gt;</code>:</strong> required to inject the Glimpse Bar overlay on every page. We do <em>not</em> read page contents.</li>
-        <li><strong><code>storage</code>:</strong> required to persist your tasks and settings on your device.</li>
-        <li><strong><code>activeTab</code>:</strong> used to coordinate the bar with the foreground tab.</li>
-      </ul>
-      <p>
-        We do not request <code>history</code>, <code>cookies</code>, <code>tabs</code>, <code>downloads</code>, <code>clipboardRead</code>, or any permission beyond what the active feature set needs. New permissions will be added only when justified, listed in the changelog, and called out in the release notes.
-      </p>
+      <h2>Changes</h2>
+      <p>If anything here changes, we'll update the date above and note it in the release changelog.</p>
 
-      <h2>6. Data retention &amp; deletion</h2>
-      <p>
-        Your local data persists until you remove it. To delete everything Glimpse Bar has ever stored on your machine:
-      </p>
-      <ul>
-        <li>Open the Glimpse Option Page → <em>Reset all data</em>, or</li>
-        <li>Uninstall the extension. Browsers automatically purge an extension's <code>storage.local</code> on uninstall.</li>
-      </ul>
-
-      <h2>7. Children</h2>
-      <p>
-        Glimpse Bar is a productivity utility with no social or content-sharing features. It is not directed at children under 13, and we do not knowingly collect any data from anyone — children included.
-      </p>
-
-      <h2>8. Auditability</h2>
-      <p>
-        Glimpse Bar is free to use. Every claim in this policy is verifiable by inspecting the extension's network activity — you will find no outbound requests to any server we own, because there are none.
-      </p>
-
-      <h2>9. Changes to this policy</h2>
-      <p>
-        If we materially change how data is handled, we will:
-      </p>
-      <ul>
-        <li>Update the "Last updated" date at the top of this page,</li>
-        <li>Note the change in the extension's release notes, and</li>
-        <li>Surface a one-time notice in the Glimpse Option Page.</li>
-      </ul>
-
-      <h2>10. Contact</h2>
-      <p>
-        Questions, concerns, or a vulnerability to report? Open an issue on <a href="https://github.com">GitHub</a> or email <a href="mailto:hello@glimpse-bar.app">hello@glimpse-bar.app</a>.
-      </p>
+      <h2>Contact</h2>
+      <p>Questions? Email <a href="mailto:glimpse.bar@gmail.com">glimpse.bar@gmail.com</a>.</p>
 
     </article>
   </div>
