@@ -4,7 +4,9 @@
 
 import {
   githubAuthItem,
+  githubChangesItem,
   githubHiddenItem,
+  githubNotifBaselineItem,
   githubPrsItem,
   githubReposItem,
   githubUiItem,
@@ -12,7 +14,7 @@ import {
   todosItem,
 } from "~/lib/storage"
 import { inboxDefault } from "~/lib/todos/types"
-import type { PullRequest, RepoMeta } from "~/lib/github/types"
+import type { ChangeEvent, NotifBaseline, PullRequest, RepoMeta } from "~/lib/github/types"
 import type { ListMeta, TodoItem } from "~/lib/todos/types"
 
 // ── date helpers ──────────────────────────────────────────────────────────────
@@ -27,6 +29,11 @@ function dayMs(offsetDays: number): number {
 /** Date.now() shifted by offsetDays. */
 function ago(offsetDays: number): number {
   return Date.now() - offsetDays * 86_400_000
+}
+
+/** Date.now() shifted by offsetMinutes. */
+function minsAgo(n: number): number {
+  return Date.now() - n * 60_000
 }
 
 // ── avatars ───────────────────────────────────────────────────────────────────
@@ -508,6 +515,111 @@ const DEMO_TODOS: TodoItem[] = [
   },
 ]
 
+// ── Change events (newest first) ─────────────────────────────────────────────
+// lastOpenedAt is set to 65 min ago → the first two events (20 min, 45 min)
+// are "unread" and PrApp will show the "2 new" chip on first open.
+
+const LAST_OPENED_AT = minsAgo(65)
+
+const DEMO_CHANGES: ChangeEvent[] = [
+  {
+    id: "dc-1",
+    prId: "acmecorp/web-platform#78",
+    prNumber: 78,
+    prTitle: "perf: optimize image pipeline with WebP conversion and lazy loading",
+    repo: "acmecorp/web-platform",
+    prUrl: "https://github.com/acmecorp/web-platform/pull/78",
+    type: "new_review_request",
+    createdAt: minsAgo(20),   // UNREAD — after lastOpenedAt
+  },
+  {
+    id: "dc-2",
+    prId: "acmecorp/infra#34",
+    prNumber: 34,
+    prTitle: "feat: add Terraform modules for EKS cluster auto-scaling",
+    repo: "acmecorp/infra",
+    prUrl: "https://github.com/acmecorp/infra/pull/34",
+    type: "ci_failure",
+    createdAt: minsAgo(45),   // UNREAD — after lastOpenedAt
+  },
+  {
+    id: "dc-3",
+    prId: "acmecorp/backend-api#512",
+    prNumber: 512,
+    prTitle: "feat: implement OAuth 2.0 social login (Google, GitHub, Microsoft)",
+    repo: "acmecorp/backend-api",
+    prUrl: "https://github.com/acmecorp/backend-api/pull/512",
+    type: "ci_success",
+    createdAt: minsAgo(90),
+  },
+  {
+    id: "dc-4",
+    prId: "acmecorp/web-platform#156",
+    prNumber: 156,
+    prTitle: "chore: upgrade React to v19 and migrate to new JSX transform",
+    repo: "acmecorp/web-platform",
+    prUrl: "https://github.com/acmecorp/web-platform/pull/156",
+    type: "approved",
+    detail: "sarah-k",
+    createdAt: minsAgo(120),
+  },
+  {
+    id: "dc-5",
+    prId: "acmecorp/web-platform#267",
+    prNumber: 267,
+    prTitle: "feat: real-time collaboration cursors with Yjs CRDT",
+    repo: "acmecorp/web-platform",
+    prUrl: "https://github.com/acmecorp/web-platform/pull/267",
+    type: "approved",
+    detail: "alex-dev",
+    createdAt: minsAgo(180),
+  },
+  {
+    id: "dc-6",
+    prId: "acmecorp/mobile-app#203",
+    prNumber: 203,
+    prTitle: "fix: crash when opening camera permissions dialog on iOS 17.2+",
+    repo: "acmecorp/mobile-app",
+    prUrl: "https://github.com/acmecorp/mobile-app/pull/203",
+    type: "new_review_request",
+    createdAt: ago(1),
+  },
+  {
+    id: "dc-7",
+    prId: "acmecorp/backend-api#891",
+    prNumber: 891,
+    prTitle: "fix: resolve race condition in payment webhook handler",
+    repo: "acmecorp/backend-api",
+    prUrl: "https://github.com/acmecorp/backend-api/pull/891",
+    type: "changes_requested",
+    detail: "priya-m",
+    createdAt: ago(1) - 2 * 60 * 60_000,
+  },
+  {
+    id: "dc-8",
+    prId: "acmecorp/backend-api#448",
+    prNumber: 448,
+    prTitle: "refactor: migrate user auth service to hexagonal architecture",
+    repo: "acmecorp/backend-api",
+    prUrl: "https://github.com/acmecorp/backend-api/pull/448",
+    type: "conflict",
+    createdAt: ago(2),
+  },
+]
+
+// Baseline mirrors the current PR state so no duplicate events on next sync.
+const DEMO_NOTIF_BASELINE: NotifBaseline = {
+  "acmecorp/web-platform#247": { ciState: "success",  reviewDecision: "review_required",  fromTab: ["mine"],   mergeState: "clean",    state: "open" },
+  "acmecorp/backend-api#891":  { ciState: "success",  reviewDecision: "changes_requested", fromTab: ["mine"],   mergeState: "clean",    state: "open" },
+  "acmecorp/web-platform#156": { ciState: "pending",  reviewDecision: "approved",          fromTab: ["mine"],   mergeState: "clean",    state: "open" },
+  "acmecorp/infra#34":         { ciState: "failure",  reviewDecision: "none",              fromTab: ["mine"],   mergeState: "unknown",  state: "open" },
+  "acmecorp/backend-api#512":  { ciState: "success",  reviewDecision: "review_required",   fromTab: ["review"], mergeState: "clean",    state: "open" },
+  "acmecorp/mobile-app#203":   { ciState: "success",  reviewDecision: "review_required",   fromTab: ["review"], mergeState: "clean",    state: "open" },
+  "acmecorp/backend-api#448":  { ciState: "success",  reviewDecision: "commented",         fromTab: ["review"], mergeState: "behind",   state: "open" },
+  "acmecorp/web-platform#267": { ciState: "success",  reviewDecision: "approved",          fromTab: ["review"], mergeState: "clean",    state: "open" },
+  "acmecorp/web-platform#78":  { ciState: "failure",  reviewDecision: "review_required",   fromTab: ["review"], mergeState: "clean",    state: "open" },
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export async function seedDemoData(): Promise<void> {
@@ -522,6 +634,8 @@ export async function seedDemoData(): Promise<void> {
     githubPrsItem.setValue(DEMO_PRS),
     githubReposItem.setValue(DEMO_REPOS),
     githubHiddenItem.setValue([]),
+    githubChangesItem.setValue(DEMO_CHANGES),
+    githubNotifBaselineItem.setValue(DEMO_NOTIF_BASELINE),
     githubUiItem.setValue({
       activeTab: "review",
       expanded: false,
@@ -529,7 +643,8 @@ export async function seedDemoData(): Promise<void> {
       sidebarCollapsed: false,
       activeView: "review",
       refreshIntervalMin: 5,
-      lastSyncAt: Date.now(),
+      lastSyncAt: minsAgo(20),
+      lastOpenedAt: LAST_OPENED_AT,
     }),
     listsItem.setValue(DEMO_LISTS),
     todosItem.setValue(DEMO_TODOS),
@@ -542,6 +657,8 @@ export async function clearDemoData(): Promise<void> {
     githubPrsItem.setValue([]),
     githubReposItem.setValue([]),
     githubHiddenItem.setValue([]),
+    githubChangesItem.setValue([]),
+    githubNotifBaselineItem.setValue({}),
     githubUiItem.setValue({
       activeTab: "review",
       expanded: false,
