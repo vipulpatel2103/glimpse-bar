@@ -158,6 +158,54 @@ export function setDueAt(
   return updateTodo(items, id, { dueAt }, now)
 }
 
+/**
+ * Compute next Today drag-drop order. `currentOrder` is the user's prior
+ * ordering (may be empty). `visibleIds` is the currently-displayed Today
+ * sequence (already sorted by selectToday). The returned array is a full
+ * ordering of `visibleIds` with `fromId` placed before/after `toId`.
+ *
+ * Reconciles stale ids out of `currentOrder` and folds new ones in at their
+ * default-sorted position so subsequent drags keep working.
+ */
+export function reorderTodayList(
+  currentOrder: readonly TodoId[] | undefined,
+  visibleIds: readonly TodoId[],
+  fromId: TodoId,
+  toId: TodoId,
+  place: "before" | "after"
+): TodoId[] {
+  if (fromId === toId) return [...visibleIds]
+  const visibleSet = new Set(visibleIds)
+  if (!visibleSet.has(fromId) || !visibleSet.has(toId)) return [...visibleIds]
+
+  // Materialize the canonical pre-drag sequence: respect currentOrder for ids
+  // that are still visible, then append any visible ids not yet ranked in
+  // their default-sort position (already encoded in `visibleIds`).
+  const seen = new Set<TodoId>()
+  const seq: TodoId[] = []
+  if (currentOrder) {
+    for (const id of currentOrder) {
+      if (visibleSet.has(id) && !seen.has(id)) {
+        seq.push(id)
+        seen.add(id)
+      }
+    }
+  }
+  for (const id of visibleIds) {
+    if (!seen.has(id)) {
+      seq.push(id)
+      seen.add(id)
+    }
+  }
+
+  const without = seq.filter((id) => id !== fromId)
+  const targetIdx = without.indexOf(toId)
+  if (targetIdx < 0) return seq
+  const insertAt = place === "before" ? targetIdx : targetIdx + 1
+  without.splice(insertAt, 0, fromId)
+  return without
+}
+
 /** Moves a task up (-1) or down (+1) within its `(listId, parentId)` siblings. */
 export function reorderTodo(
   items: TodoItem[],

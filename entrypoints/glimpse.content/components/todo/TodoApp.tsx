@@ -18,6 +18,7 @@ import {
   removeList as removeListM,
   removeTodo,
   renameList as renameListM,
+  reorderTodayList,
   reorderTodo,
   setDueAt,
   toggleDone,
@@ -236,6 +237,26 @@ export function TodoApp({ theme }: TodoAppProps) {
     [todos, setTodos]
   )
 
+  const todayItems = useMemo(
+    () => selectToday(todos, now, todoUi.todayOrder),
+    [todos, now, todoUi.todayOrder]
+  )
+
+  const handleTodayDragReorder = useCallback(
+    (fromId: string, toId: string, place: "before" | "after") => {
+      const visibleIds = todayItems.map((t) => t.id)
+      const next = reorderTodayList(
+        todoUi.todayOrder,
+        visibleIds,
+        fromId,
+        toId,
+        place
+      )
+      void setTodoUi({ ...todoUi, todayOrder: next })
+    },
+    [todayItems, todoUi, setTodoUi]
+  )
+
   const handleAddSubtask = useCallback(
     (parentId: TodoId, text: string) => {
       const parent = todos.find((t) => t.id === parentId)
@@ -387,11 +408,12 @@ export function TodoApp({ theme }: TodoAppProps) {
     if (view === "today") {
       body = (
         <TodoListView
-          items={withLingering(selectToday(todos, now), todos, lingeringIds)}
+          items={withLingering(todayItems, todos, lingeringIds)}
           now={now}
           emptyHint={SYSTEM_EMPTY.today.hint}
           EmptyIcon={SYSTEM_EMPTY.today.Icon}
           theme={theme}
+          onDragReorder={handleTodayDragReorder}
           {...sharedRowProps}
         />
       )

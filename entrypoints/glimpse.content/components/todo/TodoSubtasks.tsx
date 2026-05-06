@@ -98,7 +98,7 @@ export const TodoSubtasks = forwardRef<TodoSubtasksHandle, TodoSubtasksProps>(
         <TodoNewRow
           ref={newRowInputRef}
           theme={theme}
-          placeholder="+ New subtask"
+          placeholder="New subtask"
           onSubmit={(text) => onAddSubtask(parentId, text)}
           borderless
         />

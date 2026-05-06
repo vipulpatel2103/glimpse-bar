@@ -28,14 +28,39 @@ function rootOnly(t: TodoItem): boolean {
   return !t.parentId
 }
 
-/** Today bucket: due ≤ end-of-today AND not done AND root-level. */
-export function selectToday(items: TodoItem[], now: number): TodoItem[] {
+/**
+ * Today bucket: due ≤ end-of-today AND not done AND root-level.
+ *
+ * `manualOrder` (optional) lets the Today view honor a user-defined drag-drop
+ * sequence. Ids in `manualOrder` come first in that exact order; remaining
+ * (unranked) items follow, sorted by the default `dueAt → order` rule.
+ */
+export function selectToday(
+  items: TodoItem[],
+  now: number,
+  manualOrder?: readonly string[]
+): TodoItem[] {
   const cutoff = endOfDay(now)
-  return items
+  const filtered = items
     .filter(notDeleted)
     .filter(rootOnly)
     .filter((t) => !t.done && t.dueAt !== undefined && t.dueAt <= cutoff)
-    .sort(byDueThenOrder)
+
+  if (!manualOrder || manualOrder.length === 0) {
+    return filtered.sort(byDueThenOrder)
+  }
+
+  const rank = new Map<string, number>()
+  manualOrder.forEach((id, idx) => rank.set(id, idx))
+  const ranked: TodoItem[] = []
+  const unranked: TodoItem[] = []
+  for (const t of filtered) {
+    if (rank.has(t.id)) ranked.push(t)
+    else unranked.push(t)
+  }
+  ranked.sort((a, b) => (rank.get(a.id) as number) - (rank.get(b.id) as number))
+  unranked.sort(byDueThenOrder)
+  return [...ranked, ...unranked]
 }
 
 export interface UpcomingGroup {

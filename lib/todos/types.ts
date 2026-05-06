@@ -66,6 +66,12 @@ export interface TodoUiState {
   expanded: boolean
   pinned: boolean
   sidebarCollapsed: boolean
+  /**
+   * Explicit drag-drop ordering for the Today view. Ids not present fall back
+   * to the default `dueAt → order` sort, appended after ranked items.
+   * Reconciled to currently-visible Today ids each render.
+   */
+  todayOrder?: TodoId[]
 }
 
 /** Default ListMeta for the built-in Inbox list. */
