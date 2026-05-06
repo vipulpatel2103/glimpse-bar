@@ -1,10 +1,12 @@
 import {
+  activeAppItem,
   githubAuthItem,
   githubHiddenItem,
   githubPrsItem,
   githubReposItem,
   githubUiItem,
   listsItem,
+  todoUiItem,
   todosItem
 } from "~/lib/storage"
 import { getViewer, missingScopes } from "~/lib/github/api"
@@ -191,6 +193,26 @@ export default defineBackground(() => {
       const text = title ? `${title} — ${url}` : url
       void captureToInbox(text)
     }
+  })
+
+  // ── Toolbar action click → open TODO "Today" view ─────────────────────────
+  // Pinned action icon is the user's quickest path to today's tasks. Setting
+  // storage triggers the content script's useStorageItem watch and the panel
+  // slides in. Tabs without a content script (chrome://, store) silently no-op
+  // and pick up the state on the next page that has the bar.
+  chrome.action.onClicked.addListener(() => {
+    void (async () => {
+      try {
+        const ui = await todoUiItem.getValue()
+        if (ui.activeView !== "today") {
+          await todoUiItem.setValue({ ...ui, activeView: "today" })
+        }
+        await activeAppItem.setValue("todo")
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("[glimpse-bar] action.onClicked failed", err)
+      }
+    })()
   })
 
   void todosItem.getValue().then((v) => updateBadge(v as TodoItem[]))

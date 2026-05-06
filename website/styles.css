@@ -437,8 +437,8 @@ html, body {
   text-decoration: none; color: var(--ink);
 }
 .logo-lockup img {
-  width: 28px; height: 28px;
-  border-radius: 7px;
+  width: 36px; height: 36px;
+  border-radius: 9px;
   display: block;
 }
 
@@ -452,7 +452,7 @@ html, body {
 }
 .nav-inner {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 0;
+  padding: 10px 0;
 }
 .nav a.lnk {
   color: var(--ink-mute);
