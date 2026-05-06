@@ -10,7 +10,7 @@ You are tasked with building a modern, static landing website for a browser exte
 
 ### 📌 Project Context
 **Name:** Glimpse Bar  
-**Tagline:** Floating sidebar — TODO, Jira, GitHub PRs — on every page.  
+**Tagline:** A floating transparent rail on every web page — manage tasks, track plans, and review GitHub PRs without switching tabs.
 **Description:** A floating, draggable, transparent vertical sidebar that sits on every web page and lets users peek at their TODOs, Jira tickets, GitHub PRs, and more — without leaving the page they are on.
 
 **Current App Status:**  

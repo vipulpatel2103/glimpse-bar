@@ -5,7 +5,7 @@ export default defineConfig({
   manifest: {
     name: "Glimpse Bar",
     description:
-      "Floating sidebar — TODO, Jira, GitHub PRs — on every page.",
+      "A floating transparent rail on every web page — manage tasks, track plans, and review GitHub PRs without switching tabs.",
     // `contextMenus` — right-click → "Add selection / page as task" (Phase 01).
     // `action`       — toolbar icon + badge counter.
     // `alarms`       — GitHub PR auto-refresh every N minutes (Phase 02).

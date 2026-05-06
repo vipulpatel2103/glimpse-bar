@@ -38,7 +38,7 @@
     modules: ['@wxt-dev/module-react', '@wxt-dev/auto-icons'],
     manifest: {
       name: 'Glimpse Bar',
-      description: 'Floating sidebar — TODO, Jira, GitHub PRs — on every page.',
+      description: 'A floating transparent rail on every web page — manage tasks, track plans, and review GitHub PRs without switching tabs.',
       permissions: ['storage'],
       host_permissions: ['<all_urls>'],
     },
