@@ -206,93 +206,84 @@ export function TodoListView({
           overId === item.id &&
           overPlace === "after" &&
           dragId !== item.id
+
+        // CRITICAL: wrapper must NOT be position:relative. DatePopover and
+        // ContextMenu inside <TodoRow/> use position:absolute and compute
+        // coords against the panel (closest('[role="dialog"]')). Any
+        // positioned ancestor between popup and panel hijacks the absolute
+        // resolution, drifting popups off-screen. Layout uses flex + box-shadow
+        // to avoid needing position:relative on the wrapper.
+        const todoRow = (
+          <TodoRow
+            item={item}
+            now={now}
+            theme={theme}
+            listColor={colorOf ? colorOf(item.listId) : listColor}
+            subtasks={childrenOf ? childrenOf(item.id) : undefined}
+            sortMode={sortMode}
+            onToggle={onToggle}
+            onDelete={onDelete}
+            onSetDue={onSetDue}
+            onUpdateText={onUpdateText}
+            onDuplicate={onDuplicate}
+            onReorder={onReorder}
+            onAddSubtask={onAddSubtask}
+          />
+        )
+
+        // Drop indicator rendered as an outset box-shadow on the wrapper so it
+        // costs zero layout (no shift / reflow when toggled).
+        const indicatorShadow = showBefore
+          ? `0 -2px 0 0 ${indicatorColor}`
+          : showAfter
+            ? `0 2px 0 0 ${indicatorColor}`
+            : undefined
+
+        if (!dragEnabled) {
+          return (
+            <div key={item.id}>{todoRow}</div>
+          )
+        }
+
         return (
           <div
             key={item.id}
-            draggable={dragEnabled}
+            draggable
             onDragStart={(e) => handleDragStart(e, item.id)}
             onDragOver={(e) => handleDragOver(e, item.id)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, item.id)}
             onDragEnd={handleDragEnd}
-            className={dragEnabled ? "group/dh" : undefined}
+            className="group/dh"
             style={{
-              position: "relative",
+              display: "flex",
+              alignItems: "stretch",
               opacity: isDragging ? 0.4 : 1,
-              cursor: dragEnabled ? "grab" : undefined
+              cursor: "grab",
+              boxShadow: indicatorShadow
             }}>
-            {dragEnabled ? (
-              // Grip lives in the list container's reserved 14px left gutter
-              // (left:-12 inside this relative wrapper). Outside the row's
-              // hover/content area, so it never collides with the chevron.
-              // Subtle by default, brightens on row hover.
-              <span
-                aria-hidden="true"
-                title="Drag to reorder"
-                className="opacity-30 transition-opacity duration-100 group-hover/dh:opacity-90"
-                style={{
-                  position: "absolute",
-                  left: -12,
-                  // TodoRow is h-8 (32px). Pin grip to the parent row only —
-                  // wrapper height grows when subtasks render, but grip must
-                  // stay aligned with the parent's checkbox.
-                  top: 0,
-                  height: 32,
-                  width: 12,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  pointerEvents: "none",
-                  zIndex: 1
-                }}>
-                <GripDots theme={theme} />
-              </span>
-            ) : null}
-            {showBefore ? (
-              <span
-                aria-hidden="true"
-                style={{
-                  position: "absolute",
-                  left: 4,
-                  right: 4,
-                  top: -1,
-                  height: 2,
-                  borderRadius: 2,
-                  backgroundColor: indicatorColor,
-                  pointerEvents: "none"
-                }}
-              />
-            ) : null}
-            <TodoRow
-              item={item}
-              now={now}
-              theme={theme}
-              listColor={colorOf ? colorOf(item.listId) : listColor}
-              subtasks={childrenOf ? childrenOf(item.id) : undefined}
-              sortMode={sortMode}
-              onToggle={onToggle}
-              onDelete={onDelete}
-              onSetDue={onSetDue}
-              onUpdateText={onUpdateText}
-              onDuplicate={onDuplicate}
-              onReorder={onReorder}
-              onAddSubtask={onAddSubtask}
-            />
-            {showAfter ? (
-              <span
-                aria-hidden="true"
-                style={{
-                  position: "absolute",
-                  left: 4,
-                  right: 4,
-                  bottom: -1,
-                  height: 2,
-                  borderRadius: 2,
-                  backgroundColor: indicatorColor,
-                  pointerEvents: "none"
-                }}
-              />
-            ) : null}
+            {/* Grip flows into the list container's 14px left gutter via
+                negative marginLeft. No position:relative needed anywhere. */}
+            <span
+              aria-hidden="true"
+              title="Drag to reorder"
+              className="opacity-30 transition-opacity duration-100 group-hover/dh:opacity-90"
+              style={{
+                width: 12,
+                marginLeft: -12,
+                flexShrink: 0,
+                height: 32,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                pointerEvents: "none"
+              }}>
+              <GripDots theme={theme} />
+            </span>
+            {/* Inner column lets TodoRow + its sibling subtasks/popups fill
+                remaining width. minWidth:0 prevents flex blow-out from long
+                task text. */}
+            <div style={{ flex: "1 1 auto", minWidth: 0 }}>{todoRow}</div>
           </div>
         )
       })}
