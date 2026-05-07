@@ -264,18 +264,23 @@ export async function fetchPrStatuses(
   )
 
   // Roll up per status `key`: the latest entry wins.
+  // Fallback chain `key → name → url → idx`: deterministic identifier so two
+  // reports of the same anonymous status (INPROGRESS → SUCCESSFUL) collapse
+  // to one entry. `Math.random()` previously gave each report a unique key,
+  // inflating totalChecks and breaking dedup for status integrations that
+  // omit `key`/`name` (some 3rd-party CIs do).
   const latestByKey = new Map<string, BbStatusRaw>()
-  for (const s of items) {
-    const k = s.key ?? s.name ?? Math.random().toString(36)
+  items.forEach((s, idx) => {
+    const k = s.key ?? s.name ?? s.url ?? `__anon:${idx}`
     const prev = latestByKey.get(k)
     if (!prev) {
       latestByKey.set(k, s)
-      continue
+      return
     }
     const prevTs = new Date(prev.updated_on ?? prev.created_on ?? 0).getTime()
     const nextTs = new Date(s.updated_on ?? s.created_on ?? 0).getTime()
     if (nextTs >= prevTs) latestByKey.set(k, s)
-  }
+  })
 
   let failing = 0
   let pending = 0

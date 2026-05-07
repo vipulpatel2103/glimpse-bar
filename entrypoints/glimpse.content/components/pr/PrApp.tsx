@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import type { ProviderAdapter } from "~/lib/pr/adapter"
 import { hidePr, unhidePr } from "~/lib/pr/mutations"
@@ -47,35 +47,52 @@ export function PrApp({ adapter, theme }: Props) {
   const hasAuth  = adapter.isAuthed(auth)
   const viewer   = adapter.viewerInfo(auth)
 
-  // Capture unread count on mount, then mark panel "opened".
+  // Capture unread count on first storage hydration, then mark panel "opened".
+  // `useStorageItem` returns the fallback value synchronously, then re-renders
+  // with the persisted value once hydration completes. Use a ref to ensure
+  // we only run this once (after `lastOpenedAt` is real, not a fallback).
   const [sessionUnread, setSessionUnread] = useState<number>(0)
+  const unreadCapturedRef = useRef(false)
   useEffect(() => {
+    if (unreadCapturedRef.current) return
+    unreadCapturedRef.current = true
     const lastOpened = ui.lastOpenedAt ?? 0
     const unread = changes.filter((c) => c.createdAt > lastOpened).length
     setSessionUnread(unread)
     void setUi({ ...ui, lastOpenedAt: Date.now() })
-
-    // First-open auto-sync: if creds + scope are present but no sync has
-    // happened yet (and there's no current error/rate-limit), fire one.
-    // Otherwise the panel sits on "Syncing…" until the alarm tick arrives.
-    if (
-      hasAuth &&
-      hasScope &&
-      !ui.lastSyncAt &&
-      !ui.lastSyncError &&
-      !ui.rateLimitResetAt
-    ) {
-      try {
-        chrome.runtime?.sendMessage?.({
-          ...adapter.syncMessage,
-          manual: true
-        })
-      } catch {
-        // silent
-      }
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [ui.lastOpenedAt])
+
+  // First-open auto-sync. Storage hydrates AFTER first render, so depending on
+  // [hasAuth, hasScope, ...] is required — checking in a `[]`-deps effect would
+  // see fallback (`hasAuth=false`) and never retry. The ref prevents repeat-fire
+  // when storage updates between syncs.
+  const autoSyncFiredRef = useRef(false)
+  useEffect(() => {
+    if (autoSyncFiredRef.current) return
+    if (!hasAuth || !hasScope) return
+    if (ui.lastSyncAt || ui.lastSyncError || ui.rateLimitResetAt) {
+      // Already in some terminal state — no need to auto-sync.
+      autoSyncFiredRef.current = true
+      return
+    }
+    autoSyncFiredRef.current = true
+    try {
+      chrome.runtime?.sendMessage?.({
+        ...adapter.syncMessage,
+        manual: true
+      })
+    } catch {
+      // silent
+    }
+  }, [
+    hasAuth,
+    hasScope,
+    ui.lastSyncAt,
+    ui.lastSyncError,
+    ui.rateLimitResetAt,
+    adapter.syncMessage
+  ])
 
   const counts = useMemo(
     () => countByView(prs, gate, hidden),

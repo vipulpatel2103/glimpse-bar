@@ -30,7 +30,26 @@ export interface BbSyncOptions {
 const REPO_FETCH_CONCURRENCY = 5
 const STATUS_FETCH_CONCURRENCY = 5
 
-export async function runSync(_opts: BbSyncOptions): Promise<void> {
+/**
+ * Module-level mutex. Multiple triggers can call runSync concurrently
+ * (alarm tick, panel auto-sync on mount, manual refresh, seedWorkspace
+ * post-discovery). Without serialization their writes to bitbucketPrsItem
+ * + change-feed race; baselines diff-twice and double-emit events.
+ *
+ * Coalesce: while one sync is in flight, other callers join the same
+ * promise. Cleared in the finally block.
+ */
+let inFlight: Promise<void> | null = null
+
+export async function runSync(opts: BbSyncOptions): Promise<void> {
+  if (inFlight) return inFlight
+  inFlight = doSync(opts).finally(() => {
+    inFlight = null
+  })
+  return inFlight
+}
+
+async function doSync(_opts: BbSyncOptions): Promise<void> {
   const auth = await bitbucketAuthItem.getValue()
   const creds = credsFromAuth(auth)
   if (!creds) return
@@ -90,7 +109,28 @@ export async function runSync(_opts: BbSyncOptions): Promise<void> {
     const baseline = await bitbucketNotifBaselineItem.getValue()
     const existingPrs = await bitbucketPrsItem.getValue()
     const isFirstSync = Object.keys(baseline).length === 0
-    const updatedSinceLast = pickPrsNeedingCi(merged, existingPrs, isFirstSync)
+
+    // Carry over previously-fetched CI state for PRs we won't refetch.
+    // mapBbPr resets ciState to "none" each sync (PR-list response has no
+    // statuses); without this carry-over, unchanged PRs lose their cached
+    // CI state. Combined with the dropped "ciState === 'none'" refetch
+    // clause in pickPrsNeedingCi, this also avoids re-querying repos that
+    // genuinely have no Pipelines.
+    const existingByPr = new Map(existingPrs.map((p) => [p.id, p]))
+    const carriedOver = merged.map((pr) => {
+      const prev = existingByPr.get(pr.id)
+      if (prev && prev.updatedAt >= pr.updatedAt) {
+        return {
+          ...pr,
+          ciState: prev.ciState,
+          failingChecks: prev.failingChecks,
+          totalChecks: prev.totalChecks
+        }
+      }
+      return pr
+    })
+
+    const updatedSinceLast = pickPrsNeedingCi(carriedOver, existingPrs, isFirstSync)
 
     const ciPatches = await runWithConcurrency(
       updatedSinceLast,
@@ -109,7 +149,7 @@ export async function runSync(_opts: BbSyncOptions): Promise<void> {
       (p): p is { id: string } & CiPatch => p !== null
     )
 
-    const withCi = patchCiState(merged, validPatches)
+    const withCi = patchCiState(carriedOver, validPatches)
 
     // ── Persist: PRs, repos, auth ─────────────────────────────────────────
     const sorted = mergePrs(existingPrs, withCi)
@@ -204,14 +244,19 @@ function stripWorkspace(key: string, workspace: BbWorkspaceSlug): string {
  * Dedupe PRs by id, merging fromTab arrays when the same PR shows up in
  * results from multiple repos (shouldn't happen in normal Bitbucket setups —
  * a PR lives in one repo — but safe against pagination or fork edge cases).
+ *
+ * On collision: the entry with the newer `updatedAt` wins on every field;
+ * `fromTab` is unioned across both. Previously first-wins meant a stale
+ * earlier-page record could shadow newer data.
  */
 function dedupePrs(all: NormalizedPr[]): NormalizedPr[] {
   const map = new Map<string, NormalizedPr>()
   for (const pr of all) {
     const existing = map.get(pr.id)
     if (existing) {
-      const tabs = new Set([...existing.fromTab, ...pr.fromTab])
-      map.set(pr.id, { ...existing, fromTab: Array.from(tabs) })
+      const winner = pr.updatedAt > existing.updatedAt ? pr : existing
+      const tabs = Array.from(new Set([...existing.fromTab, ...pr.fromTab]))
+      map.set(pr.id, { ...winner, fromTab: tabs })
     } else {
       map.set(pr.id, pr)
     }
@@ -229,7 +274,13 @@ function pickPrsNeedingCi(
   const out: NormalizedPr[] = []
   for (const pr of next) {
     const prev = existingByPr.get(pr.id)
-    if (!prev || prev.updatedAt < pr.updatedAt || prev.ciState === "none") {
+    // Refetch CI only for new PRs or those whose updatedAt advanced.
+    // Previously also refetched whenever `prev.ciState === "none"`, but that
+    // re-queried every sync for repos without Bitbucket Pipelines (status
+    // endpoint returns []) — burning ~1 req/PR/sync forever. Drop that clause.
+    // CI updates that don't bump PR.updated_on (rare — most events do) catch
+    // up on the next genuine PR update.
+    if (!prev || prev.updatedAt < pr.updatedAt) {
       out.push(pr)
     }
   }

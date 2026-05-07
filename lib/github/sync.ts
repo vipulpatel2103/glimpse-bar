@@ -22,7 +22,25 @@ export interface SyncOptions {
   manual: boolean
 }
 
-export async function runSync(_opts: SyncOptions): Promise<void> {
+/**
+ * Module-level mutex. Alarm tick, panel auto-sync on mount, and manual
+ * refresh can fire runSync concurrently — without serialization their
+ * writes race and the baseline diff would double-emit events.
+ *
+ * Coalesce: while one sync is in flight, other callers join the same
+ * promise. Cleared in the finally block.
+ */
+let inFlight: Promise<void> | null = null
+
+export async function runSync(opts: SyncOptions): Promise<void> {
+  if (inFlight) return inFlight
+  inFlight = doSync(opts).finally(() => {
+    inFlight = null
+  })
+  return inFlight
+}
+
+async function doSync(_opts: SyncOptions): Promise<void> {
   const auth = await githubAuthItem.getValue()
   if (!auth.pat) return
 
