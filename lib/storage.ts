@@ -2,15 +2,18 @@ import { storage } from "@wxt-dev/storage"
 
 import type { AppId } from "./apps/types"
 export type { AppId }
+import type { GitHubAuthState, RepoMeta } from "./github/types"
 import type {
-  ChangeEvent,
-  GitHubAuthState,
-  GitHubUiState,
+  BbAuthState,
+  BbRepoMeta,
+  BbWorkspaceMeta
+} from "./bitbucket/types"
+import type {
+  NormalizedChangeEvent,
+  NormalizedPr,
   NotifBaseline,
-  PrId,
-  PullRequest,
-  RepoMeta
-} from "./github/types"
+  PrUiState
+} from "./pr/types"
 import { inboxDefault } from "./todos/types"
 import type { ListMeta, TodoItem, TodoUiState } from "./todos/types"
 
@@ -69,54 +72,97 @@ export const todoUiItem = storage.defineItem<TodoUiState>(
   }
 )
 
-// ── GitHub PRs phase storage ────────────────────────────────────────────────
+// ── Shared PR cache fallback (used by every provider's UI item) ─────────────
 
-/** PAT + resolved login/avatar. sync: so it survives profile reinstalls. */
+const PR_UI_FALLBACK: PrUiState = {
+  activeTab: "review",
+  expanded: false,
+  pinned: false,
+  sidebarCollapsed: false,
+  activeView: "review",
+  refreshIntervalMin: 5
+}
+
+// ── GitHub PRs phase storage ────────────────────────────────────────────────
+//
+// Auth + hierarchy items keep their original keys (provider-specific shapes).
+// Cache + UI + change-feed items bumped to `-v2` for the Phase 02.2 refactor:
+// the in-memory shape changed to the shared NormalizedPr / PrUiState model,
+// so the old data can't be read by the new code.
+
 export const githubAuthItem = storage.defineItem<GitHubAuthState>(
   "sync:gb-github-auth",
   { fallback: {} }
 )
 
-/** Cached PR list from the last successful sync. */
-export const githubPrsItem = storage.defineItem<PullRequest[]>(
-  "local:gb-github-prs",
+export const githubPrsItem = storage.defineItem<NormalizedPr[]>(
+  "local:gb-github-prs-v2",
   { fallback: [] }
 )
 
-/** Repos auto-discovered from sync results, with per-repo enable toggle. */
 export const githubReposItem = storage.defineItem<RepoMeta[]>(
   "local:gb-github-repos",
   { fallback: [] }
 )
 
-/** Permanently hidden PR ids. */
-export const githubHiddenItem = storage.defineItem<PrId[]>(
+export const githubHiddenItem = storage.defineItem<string[]>(
   "local:gb-github-hidden",
   { fallback: [] }
 )
 
-export const githubUiItem = storage.defineItem<GitHubUiState>(
-  "local:gb-github-ui",
-  {
-    fallback: {
-      activeTab: "review",
-      expanded: false,
-      pinned: false,
-      sidebarCollapsed: false,
-      activeView: "review",
-      refreshIntervalMin: 5
-    }
-  }
+export const githubUiItem = storage.defineItem<PrUiState>(
+  "local:gb-github-ui-v2",
+  { fallback: PR_UI_FALLBACK }
 )
 
-/** Change-feed events (newest first, capped at 50). */
-export const githubChangesItem = storage.defineItem<ChangeEvent[]>(
-  "local:gb-github-changes",
+export const githubChangesItem = storage.defineItem<NormalizedChangeEvent[]>(
+  "local:gb-github-changes-v2",
   { fallback: [] }
 )
 
-/** Per-PR state snapshot for diffing on each sync. */
 export const githubNotifBaselineItem = storage.defineItem<NotifBaseline>(
-  "local:gb-github-notif-baseline",
+  "local:gb-github-notif-baseline-v2",
+  { fallback: {} }
+)
+
+// ── Bitbucket PRs phase storage ─────────────────────────────────────────────
+
+export const bitbucketAuthItem = storage.defineItem<BbAuthState>(
+  "sync:gb-bb-auth",
+  { fallback: {} }
+)
+
+export const bitbucketPrsItem = storage.defineItem<NormalizedPr[]>(
+  "local:gb-bb-prs-v2",
+  { fallback: [] }
+)
+
+export const bitbucketWorkspacesItem = storage.defineItem<BbWorkspaceMeta[]>(
+  "local:gb-bb-workspaces",
+  { fallback: [] }
+)
+
+export const bitbucketReposItem = storage.defineItem<BbRepoMeta[]>(
+  "local:gb-bb-repos",
+  { fallback: [] }
+)
+
+export const bitbucketHiddenItem = storage.defineItem<string[]>(
+  "local:gb-bb-hidden",
+  { fallback: [] }
+)
+
+export const bitbucketUiItem = storage.defineItem<PrUiState>(
+  "local:gb-bb-ui-v2",
+  { fallback: PR_UI_FALLBACK }
+)
+
+export const bitbucketChangesItem = storage.defineItem<NormalizedChangeEvent[]>(
+  "local:gb-bb-changes-v2",
+  { fallback: [] }
+)
+
+export const bitbucketNotifBaselineItem = storage.defineItem<NotifBaseline>(
+  "local:gb-bb-notif-baseline-v2",
   { fallback: {} }
 )

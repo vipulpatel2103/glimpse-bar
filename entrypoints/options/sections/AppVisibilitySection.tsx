@@ -42,7 +42,16 @@ export function AppVisibilitySection() {
                 htmlFor={`app-vis-${app.id}`}
                 className="flex flex-1 cursor-pointer items-center gap-2 text-sm font-medium"
               >
-                <Icon size={14} strokeWidth={2} aria-hidden="true" />
+                {app.iconUrl ? (
+                  <img
+                    src={app.iconUrl}
+                    alt=""
+                    aria-hidden="true"
+                    style={{ width: 14, height: 14, objectFit: "contain" }}
+                  />
+                ) : Icon ? (
+                  <Icon size={14} strokeWidth={2} aria-hidden="true" />
+                ) : null}
                 {app.name}
               </label>
             </li>

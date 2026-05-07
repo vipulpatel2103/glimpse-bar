@@ -1,6 +1,7 @@
 import { Copy, ExternalLink, Eye, EyeOff, GitBranch } from "lucide-react"
 
-import type { PullRequest } from "~/lib/github/types"
+import type { ProviderAdapter } from "~/lib/pr/adapter"
+import type { NormalizedPr } from "~/lib/pr/types"
 import {
   ContextMenu,
   type ContextMenuAnchor,
@@ -8,7 +9,8 @@ import {
 } from "../todo/ContextMenu"
 
 interface Props {
-  pr: PullRequest | null
+  adapter: ProviderAdapter
+  pr: NormalizedPr | null
   open: boolean
   anchor: ContextMenuAnchor | null
   isHidden: boolean
@@ -22,7 +24,7 @@ async function copyText(text: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(text)
   } catch {
-    // Fallback for http pages where clipboard API requires secure context.
+    // Fallback for http pages where the Clipboard API requires secure context.
     const el = document.createElement("textarea")
     el.value = text
     el.style.cssText = "position:fixed;opacity:0;pointer-events:none"
@@ -35,6 +37,7 @@ async function copyText(text: string): Promise<void> {
 }
 
 export function PrContextMenu({
+  adapter,
   pr,
   open,
   anchor,
@@ -49,7 +52,7 @@ export function PrContextMenu({
   const items: ContextMenuItem[] = [
     {
       id: "open",
-      label: "Open in GitHub",
+      label: `Open in ${adapter.brand.shortName}`,
       Icon: ExternalLink,
       onClick: () => {
         window.open(pr.url, "_blank", "noopener,noreferrer")

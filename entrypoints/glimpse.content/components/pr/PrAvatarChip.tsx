@@ -1,11 +1,11 @@
 import { useState } from "react"
 
-import { initialsOf, reviewerRingColor } from "~/lib/github/format"
-import type { ReviewerState } from "~/lib/github/types"
-import type { StatusColor } from "~/lib/github/format"
+import { initialsOf, reviewerRingColor } from "~/lib/pr/format"
+import type { ReviewerState } from "~/lib/pr/types"
+import type { StatusColor } from "~/lib/pr/format"
 
 interface AvatarChipProps {
-  login: string
+  displayName: string
   avatarUrl?: string
   /** undefined = author (no ring). */
   reviewState?: ReviewerState
@@ -27,12 +27,18 @@ function ringColor(state: ReviewerState | undefined, theme: "light" | "dark"): s
   return RING_COLORS[token][theme]
 }
 
-export function AvatarChip({ login, avatarUrl, reviewState, size = 24, theme }: AvatarChipProps) {
+export function PrAvatarChip({
+  displayName,
+  avatarUrl,
+  reviewState,
+  size = 24,
+  theme
+}: AvatarChipProps) {
   const [failed, setFailed] = useState(false)
   const color = ringColor(reviewState, theme)
   const tooltip = reviewState
-    ? `@${login} — ${reviewState.replace("_", " ")}`
-    : `@${login}`
+    ? `@${displayName} — ${reviewState.replace("_", " ")}`
+    : `@${displayName}`
   const fontSize = size <= 16 ? 8 : size <= 24 ? 9 : 10
 
   const commonStyle: React.CSSProperties = {
@@ -51,7 +57,7 @@ export function AvatarChip({ login, avatarUrl, reviewState, size = 24, theme }: 
     return (
       <img
         src={avatarUrl}
-        alt={`@${login}`}
+        alt={`@${displayName}`}
         title={tooltip}
         loading="lazy"
         style={{ ...commonStyle, objectFit: "cover" }}
@@ -72,7 +78,7 @@ export function AvatarChip({ login, avatarUrl, reviewState, size = 24, theme }: 
         letterSpacing: 0
       }}
     >
-      {initialsOf(login)}
+      {initialsOf(displayName)}
     </span>
   )
 }

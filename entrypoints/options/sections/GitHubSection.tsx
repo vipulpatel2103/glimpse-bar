@@ -5,8 +5,9 @@ import {
   githubReposItem,
   githubUiItem
 } from "~/lib/storage"
-import { initialsOf } from "~/lib/github/format"
-import type { GitHubAuthState, GitHubUiState, RepoMeta } from "~/lib/github/types"
+import { initialsOf } from "~/lib/pr/format"
+import type { PrUiState } from "~/lib/pr/types"
+import type { GitHubAuthState, RepoMeta } from "~/lib/github/types"
 import { useStorageItem } from "~/entrypoints/glimpse.content/hooks/useStorageItem"
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -183,7 +184,7 @@ export function GitHubSection() {
   }
 
   async function handleIntervalChange(minutes: number) {
-    await setUi({ ...(ui as GitHubUiState), refreshIntervalMin: minutes })
+    await setUi({ ...(ui as PrUiState), refreshIntervalMin: minutes })
   }
 
   async function handleRepoToggle(key: string) {
@@ -196,7 +197,7 @@ export function GitHubSection() {
 
   // ── Render ───────────────────────────────────────────────────────────────
 
-  const uiState = ui as GitHubUiState
+  const uiState = ui as PrUiState
   const authState = auth as GitHubAuthState
   const repoList = repos as RepoMeta[]
 

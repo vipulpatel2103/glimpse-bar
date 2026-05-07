@@ -1,5 +1,13 @@
 import {
   activeAppItem,
+  bitbucketAuthItem,
+  bitbucketChangesItem,
+  bitbucketHiddenItem,
+  bitbucketNotifBaselineItem,
+  bitbucketPrsItem,
+  bitbucketReposItem,
+  bitbucketUiItem,
+  bitbucketWorkspacesItem,
   githubAuthItem,
   githubHiddenItem,
   githubPrsItem,
@@ -9,6 +17,14 @@ import {
   todoUiItem,
   todosItem
 } from "~/lib/storage"
+import {
+  getViewer as bbGetViewer,
+  probeScopes as bbProbeScopes
+} from "~/lib/bitbucket/api"
+import {
+  discoverWorkspaceRepos,
+  runSync as bbRunSync
+} from "~/lib/bitbucket/sync"
 import { getViewer, missingScopes } from "~/lib/github/api"
 import { runSync } from "~/lib/github/sync"
 import { addTodo, ensureInbox } from "~/lib/todos/mutations"
@@ -20,12 +36,18 @@ type GlimpseMessage =
   | { type: "gh:testPat"; pat: string }
   | { type: "gh:sync"; manual?: boolean }
   | { type: "gh:disconnect" }
+  | { type: "bb:testCreds"; workspace: string; username: string; token: string }
+  | { type: "bb:seedWorkspace" }
+  | { type: "bb:listRepos"; workspace: string }
+  | { type: "bb:sync"; manual?: boolean }
+  | { type: "bb:disconnect" }
 
 const MENU_SELECTION = "gb-add-selection"
 const MENU_PAGE = "gb-add-page"
 const MAX_TEXT_LEN = 280
 const BADGE_COLOR = "#2563eb"
 const ALARM_GH_SYNC = "gh-sync"
+const ALARM_BB_SYNC = "bb-sync"
 
 async function captureToInbox(rawText: string): Promise<void> {
   const text = rawText.trim().replace(/\s+/g, " ").slice(0, MAX_TEXT_LEN)
@@ -81,6 +103,11 @@ function registerContextMenus(): void {
 async function setupGhAlarm(): Promise<void> {
   const ui = await githubUiItem.getValue()
   chrome.alarms.create(ALARM_GH_SYNC, { periodInMinutes: ui.refreshIntervalMin })
+}
+
+async function setupBbAlarm(): Promise<void> {
+  const ui = await bitbucketUiItem.getValue()
+  chrome.alarms.create(ALARM_BB_SYNC, { periodInMinutes: ui.refreshIntervalMin })
 }
 
 export default defineBackground(() => {
@@ -174,6 +201,119 @@ export default defineBackground(() => {
         return true
       }
 
+      // ── bb:testCreds ────────────────────────────────────────────────────
+      if (message?.type === "bb:testCreds") {
+        const { workspace, username, token } = message
+        ;(async () => {
+          const creds = { username, token }
+          const viewer = await bbGetViewer(creds)
+          const scopes = await bbProbeScopes(creds, workspace)
+          return { viewer, scopes }
+        })()
+          .then(({ viewer, scopes }) => {
+            sendResponse({
+              ok:          true,
+              accountId:   viewer.accountId,
+              uuid:        viewer.uuid,
+              nickname:    viewer.nickname,
+              displayName: viewer.displayName,
+              avatarUrl:   viewer.avatarUrl,
+              missing:     scopes.missing
+            })
+          })
+          .catch((err: unknown) => {
+            sendResponse({
+              ok:    false,
+              error: err instanceof Error ? err.message : String(err)
+            })
+          })
+        return true
+      }
+
+      // ── bb:seedWorkspace ────────────────────────────────────────────────
+      // Seeds bitbucketWorkspacesItem with the single workspace declared on
+      // the Options form. No discovery (`/2.0/workspaces` is 410 Gone). Then
+      // enumerates that workspace's repos in the same pass.
+      if (message?.type === "bb:seedWorkspace") {
+        ;(async () => {
+          const auth = await bitbucketAuthItem.getValue()
+          const slug = auth.workspace
+          if (!slug) return
+          const existing = await bitbucketWorkspacesItem.getValue()
+          const present = existing.find((w) => w.slug === slug)
+          if (!present) {
+            await bitbucketWorkspacesItem.setValue([
+              ...existing,
+              {
+                slug,
+                name: slug,
+                enabled: true,
+                discoveredAt: Date.now()
+              }
+            ])
+          } else if (!present.enabled) {
+            await bitbucketWorkspacesItem.setValue(
+              existing.map((w) => (w.slug === slug ? { ...w, enabled: true } : w))
+            )
+          }
+          await discoverWorkspaceRepos(slug)
+          // Kick off the first PR sync immediately — UX nicety so the user
+          // sees data right after Save without waiting for the alarm tick.
+          void bbRunSync({ manual: true })
+        })()
+          .then(() => sendResponse({ ok: true }))
+          .catch((err: unknown) => {
+            sendResponse({
+              ok:    false,
+              error: err instanceof Error ? err.message : String(err)
+            })
+          })
+        return true
+      }
+
+      // ── bb:listRepos ────────────────────────────────────────────────────
+      if (message?.type === "bb:listRepos") {
+        const { workspace } = message
+        discoverWorkspaceRepos(workspace)
+          .then(() => sendResponse({ ok: true }))
+          .catch((err: unknown) => {
+            sendResponse({
+              ok:    false,
+              error: err instanceof Error ? err.message : String(err)
+            })
+          })
+        return true
+      }
+
+      // ── bb:sync ─────────────────────────────────────────────────────────
+      if (message?.type === "bb:sync") {
+        void bbRunSync({ manual: message.manual ?? false })
+        sendResponse({ ok: true })
+        return true
+      }
+
+      // ── bb:disconnect ───────────────────────────────────────────────────
+      if (message?.type === "bb:disconnect") {
+        Promise.all([
+          bitbucketAuthItem.setValue({}),
+          bitbucketPrsItem.setValue([]),
+          bitbucketWorkspacesItem.setValue([]),
+          bitbucketReposItem.setValue([]),
+          bitbucketHiddenItem.setValue([]),
+          bitbucketChangesItem.setValue([]),
+          bitbucketNotifBaselineItem.setValue({})
+          // bitbucketUiItem intentionally untouched — preserve view preference.
+        ])
+          .then(() => sendResponse({ ok: true }))
+          .catch((err: unknown) => {
+            sendResponse({
+              ok:    false,
+              error: err instanceof Error ? err.message : String(err)
+            })
+          })
+        return true
+      }
+
       return false
     }
   )
@@ -226,9 +366,15 @@ export default defineBackground(() => {
   // existing alarm, so this is idempotent.
   void setupGhAlarm()
 
+  // ── Bitbucket auto-sync alarm (Phase 02.1) ────────────────────────────────
+  void setupBbAlarm()
+
   chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === ALARM_GH_SYNC) {
       void runSync({ manual: false })
+    }
+    if (alarm.name === ALARM_BB_SYNC) {
+      void bbRunSync({ manual: false })
     }
   })
 
@@ -236,6 +382,11 @@ export default defineBackground(() => {
   githubUiItem.watch((next, prev) => {
     if (next?.refreshIntervalMin !== prev?.refreshIntervalMin) {
       void setupGhAlarm()
+    }
+  })
+  bitbucketUiItem.watch((next, prev) => {
+    if (next?.refreshIntervalMin !== prev?.refreshIntervalMin) {
+      void setupBbAlarm()
     }
   })
 })

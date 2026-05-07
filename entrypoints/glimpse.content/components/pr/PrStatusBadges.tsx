@@ -7,18 +7,11 @@ import {
   type LucideIcon
 } from "lucide-react"
 
-import {
-  ciStatusMeta,
-  draftMeta,
-  mergeStateMeta,
-  reviewStatusMeta,
-  type StatusColor,
-  type StatusMeta
-} from "~/lib/github/format"
-import type { PullRequest } from "~/lib/github/types"
+import type { StatusColor, StatusMeta } from "~/lib/pr/format"
 
 interface Props {
-  pr: PullRequest
+  /** Provider-supplied pill list, already in priority order. */
+  pills: StatusMeta[]
   theme: "light" | "dark"
 }
 
@@ -39,11 +32,11 @@ const BG_COLORS: Record<StatusColor, { light: string; dark: string }> = {
 }
 
 const ICONS: Record<string, LucideIcon> = {
-  Check:         Check,
-  Pencil:        Pencil,
-  CircleHelp:    CircleHelp,
-  AlertTriangle: AlertTriangle,
-  FileEdit:      FileEdit
+  Check,
+  Pencil,
+  CircleHelp,
+  AlertTriangle,
+  FileEdit
 }
 
 function Pill({ meta, theme }: { meta: StatusMeta; theme: "light" | "dark" }) {
@@ -76,27 +69,12 @@ function Pill({ meta, theme }: { meta: StatusMeta; theme: "light" | "dark" }) {
 }
 
 /**
- * Builds the priority-ordered pill list for a PR.
- * At most 2 pills render; extra collapse to a "+N" neutral chip.
+ * Renders the first 2 pills + a "+N" overflow chip when more pills exist.
+ * Pill order + visibility is provider-controlled (adapter.getStatusPills).
  */
-export function PrStatusBadges({ pr, theme }: Props) {
-  const candidates: StatusMeta[] = []
-
-  const mergePill = mergeStateMeta(pr.mergeState)
-  if (mergePill) candidates.push(mergePill)
-
-  const reviewPill = reviewStatusMeta(pr.reviewDecision)
-  if (reviewPill) candidates.push(reviewPill)
-
-  if (pr.isDraft) candidates.push(draftMeta())
-
-  // CI only shown if not already dominated by merge/review state.
-  if (candidates.length < 2 && pr.ciState !== "none" && pr.ciState !== "neutral") {
-    candidates.push(ciStatusMeta(pr.ciState))
-  }
-
-  const visible = candidates.slice(0, 2)
-  const overflow = candidates.length - visible.length
+export function PrStatusBadges({ pills, theme }: Props) {
+  const visible = pills.slice(0, 2)
+  const overflow = pills.length - visible.length
 
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "nowrap" }}>
@@ -105,7 +83,7 @@ export function PrStatusBadges({ pr, theme }: Props) {
       ))}
       {overflow > 0 && (
         <span
-          title={candidates.slice(2).map((m) => m.label).join(", ")}
+          title={pills.slice(2).map((m) => m.label).join(", ")}
           style={{
             display: "inline-flex",
             alignItems: "center",

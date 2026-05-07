@@ -5,6 +5,7 @@ import ReactDOM from "react-dom/client"
 
 import { transparencyItem } from "~/lib/storage"
 import { AppVisibilitySection } from "./sections/AppVisibilitySection"
+import { BitbucketSection } from "./sections/BitbucketSection"
 import { GitHubSection } from "./sections/GitHubSection"
 
 function useTheme(): "light" | "dark" {
@@ -92,6 +93,9 @@ function Options() {
 
           <hr className="my-6 border-black/[0.08] dark:border-white/[0.08]" />
           <GitHubSection />
+
+          <hr className="my-6 border-black/[0.08] dark:border-white/[0.08]" />
+          <BitbucketSection />
         </div>
       </main>
     </div>

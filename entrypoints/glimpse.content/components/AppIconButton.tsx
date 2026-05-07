@@ -6,7 +6,10 @@ import {
 } from "react"
 
 interface AppIconButtonProps {
-  Icon: LucideIcon
+  /** Lucide icon — used when `iconUrl` is not set. */
+  Icon?: LucideIcon
+  /** Raster/SVG image URL for brand-mark icons. Takes precedence over `Icon`. */
+  iconUrl?: string
   label: string
   isActive?: boolean
   theme: "light" | "dark"
@@ -18,6 +21,7 @@ interface AppIconButtonProps {
 function AppIconButtonInner(
   {
     Icon,
+    iconUrl,
     label,
     isActive = false,
     theme,
@@ -77,7 +81,21 @@ function AppIconButtonInner(
           "hover:brightness-110 active:scale-[0.94] " +
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 focus-visible:ring-offset-neutral-900"
         }>
-        <Icon size={18} strokeWidth={2.25} aria-hidden="true" />
+        {iconUrl ? (
+          <img
+            src={iconUrl}
+            alt=""
+            aria-hidden="true"
+            style={{
+              width: 18,
+              height: 18,
+              objectFit: "contain",
+              pointerEvents: "none"
+            }}
+          />
+        ) : Icon ? (
+          <Icon size={18} strokeWidth={2.25} aria-hidden="true" />
+        ) : null}
       </button>
 
       {badgeDot && (

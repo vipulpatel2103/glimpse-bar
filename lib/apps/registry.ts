@@ -1,14 +1,13 @@
 import { CheckSquare, ExternalLink, Github, Settings } from "lucide-react"
 
-import type { ComponentType } from "react"
-import { PrApp } from "~/entrypoints/glimpse.content/components/github/PrApp"
+import bbIcon from "~/assets/bb.png"
 import type { AppDefinition } from "./types"
 
 const PlaceholderRenderer = () => null
 
 // Master list. Entries with `enabled: false` are hidden from the Glimpse Bar
-// until their phase ships. Re-enable by flipping the flag (and providing a
-// real Renderer when the phase delivers one).
+// until their phase ships. PR-rendering apps use `providerId` instead of
+// a direct `Renderer` — `GlimpsePanel` looks up the adapter via lib/pr/adapters.
 const ALL_APPS: AppDefinition[] = [
   {
     id: "todo",
@@ -29,7 +28,14 @@ const ALL_APPS: AppDefinition[] = [
     id: "github",
     name: "GitHub PRs",
     Icon: Github,
-    Renderer: PrApp as unknown as ComponentType,
+    providerId: "github",
+    enabled: true
+  },
+  {
+    id: "bitbucket",
+    name: "Bitbucket PRs",
+    iconUrl: bbIcon,
+    providerId: "bitbucket",
     enabled: true
   },
   {

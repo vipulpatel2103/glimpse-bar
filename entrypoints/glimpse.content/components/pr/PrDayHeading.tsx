@@ -23,7 +23,6 @@ export function PrDayHeading({ label, theme, isFirst }: Props) {
         WebkitBackdropFilter: "blur(4px)"
       }}
     >
-      {/* Top separator — skipped for the very first group */}
       {!isFirst && (
         <div style={{ height: 1, backgroundColor: divider, marginBottom: 0 }} />
       )}
@@ -35,7 +34,6 @@ export function PrDayHeading({ label, theme, isFirst }: Props) {
           padding: isFirst ? "6px 10px 5px" : "8px 10px 5px"
         }}
       >
-        {/* Accent dot */}
         <span
           aria-hidden="true"
           style={{

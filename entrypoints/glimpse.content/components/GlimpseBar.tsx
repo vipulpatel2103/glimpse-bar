@@ -133,6 +133,7 @@ export function GlimpseBar({
                 buttonsRef.current[idx] = el
               }}
               Icon={app.Icon}
+              iconUrl={app.iconUrl}
               label={label}
               isActive={isActive}
               theme={theme}

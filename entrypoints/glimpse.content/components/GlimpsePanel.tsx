@@ -11,9 +11,11 @@ import {
   type Edge
 } from "~/lib/storage"
 
+import { ADAPTERS } from "~/lib/pr/adapters"
+
 import { usePrefersReducedMotion } from "../hooks/useTheme"
 import { useViewportWidth } from "../hooks/useViewportWidth"
-import { PrApp } from "./github/PrApp"
+import { PrApp } from "./pr/PrApp"
 import { TodoApp } from "./todo/TodoApp"
 
 interface GlimpsePanelProps {
@@ -187,8 +189,8 @@ export function GlimpsePanel({
           className="flex flex-col overflow-hidden rounded-2xl">
           {app.id === "todo" ? (
             <TodoApp theme={theme} />
-          ) : app.id === "github" ? (
-            <PrApp theme={theme} />
+          ) : app.providerId && ADAPTERS[app.providerId] ? (
+            <PrApp adapter={ADAPTERS[app.providerId]!} theme={theme} />
           ) : (
             <>
               <header
@@ -199,7 +201,16 @@ export function GlimpsePanel({
                       ? "1px solid rgba(255,255,255,0.06)"
                       : "1px solid rgba(0,0,0,0.06)"
                 }}>
-                <app.Icon size={16} strokeWidth={2} aria-hidden="true" />
+                {app.iconUrl ? (
+                  <img
+                    src={app.iconUrl}
+                    alt=""
+                    aria-hidden="true"
+                    style={{ width: 16, height: 16, objectFit: "contain" }}
+                  />
+                ) : app.Icon ? (
+                  <app.Icon size={16} strokeWidth={2} aria-hidden="true" />
+                ) : null}
                 <h2 className="flex-1 text-[14px] font-semibold leading-none">
                   {app.name}
                 </h2>

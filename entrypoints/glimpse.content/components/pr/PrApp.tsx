@@ -1,87 +1,93 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 
-import {
-  githubAuthItem,
-  githubChangesItem,
-  githubHiddenItem,
-  githubPrsItem,
-  githubReposItem,
-  githubUiItem,
-} from "~/lib/storage"
-import { hidePr, unhidePr } from "~/lib/github/mutations"
-import { countByView } from "~/lib/github/selectors"
+import type { ProviderAdapter } from "~/lib/pr/adapter"
+import { hidePr, unhidePr } from "~/lib/pr/mutations"
+import { countByView } from "~/lib/pr/selectors"
 import type {
-  ChangeEvent,
-  GitHubAuthState,
-  GitHubUiState,
-  GitHubView,
-  PrId,
-  PrTab,
-  PullRequest,
-  RepoMeta
-} from "~/lib/github/types"
+  NormalizedPr,
+  Tab,
+  View
+} from "~/lib/pr/types"
 
 import { useNowTick } from "../../hooks/useNowTick"
 import { useStorageItem } from "../../hooks/useStorageItem"
 import { useViewportWidth } from "../../hooks/useViewportWidth"
 import type { ContextMenuAnchor } from "../todo/ContextMenu"
+
 import { ChangesView } from "./ChangesView"
 import { PrContextMenu } from "./PrContextMenu"
 import { PrHeader } from "./PrHeader"
 import { PrListView } from "./PrListView"
-import { PrSidebar } from "./PrSidebar"
 import { PrViewerHeader } from "./PrViewerHeader"
 
 const EXPAND_BREAKPOINT = 720
 
 interface Props {
+  adapter: ProviderAdapter
   theme: "light" | "dark"
 }
 
-export function PrApp({ theme }: Props) {
-  const [auth]        = useStorageItem(githubAuthItem)
-  const [prs]         = useStorageItem(githubPrsItem)
-  const [repos]       = useStorageItem(githubReposItem)
-  const [hidden, setHidden] = useStorageItem(githubHiddenItem)
-  const [ui, setUi]   = useStorageItem(githubUiItem)
-  const [changes, setChanges] = useStorageItem(githubChangesItem)
+export function PrApp({ adapter, theme }: Props) {
+  const [auth]                  = useStorageItem(adapter.storage.auth)
+  const [prs]                   = useStorageItem(adapter.storage.prs)
+  const [hidden, setHidden]     = useStorageItem(adapter.storage.hidden)
+  const [ui, setUi]             = useStorageItem(adapter.storage.ui)
+  const [changes, setChanges]   = useStorageItem(adapter.storage.changes)
 
   const now       = useNowTick(60_000)
   const vw        = useViewportWidth()
   const canExpand = vw >= EXPAND_BREAKPOINT
 
-  const uiState   = ui      as GitHubUiState
-  const authState = auth    as GitHubAuthState
-  const prList    = prs     as PullRequest[]
-  const repoList  = repos   as RepoMeta[]
-  const hiddenIds = hidden  as PrId[]
-  const changesList = changes as ChangeEvent[]
+  const expanded = ui.expanded && canExpand
 
-  const expanded = uiState.expanded && canExpand
+  // Adapter-driven gating + scope hooks. Adapter object is stable, so
+  // calling these every render preserves hook order.
+  const gate     = adapter.usePrGate()
+  const hasScope = adapter.useHasScope()
+  const hasAuth  = adapter.isAuthed(auth)
+  const viewer   = adapter.viewerInfo(auth)
 
-  // Unread count at mount time — computed before we reset lastOpenedAt.
+  // Capture unread count on mount, then mark panel "opened".
   const [sessionUnread, setSessionUnread] = useState<number>(0)
-
-  // On mount: capture unread count for this session's chip, then clear the dot.
   useEffect(() => {
-    const lastOpened = uiState.lastOpenedAt ?? 0
-    const unread = changesList.filter((c) => c.createdAt > lastOpened).length
+    const lastOpened = ui.lastOpenedAt ?? 0
+    const unread = changes.filter((c) => c.createdAt > lastOpened).length
     setSessionUnread(unread)
-    void setUi({ ...uiState, lastOpenedAt: Date.now() })
+    void setUi({ ...ui, lastOpenedAt: Date.now() })
+
+    // First-open auto-sync: if creds + scope are present but no sync has
+    // happened yet (and there's no current error/rate-limit), fire one.
+    // Otherwise the panel sits on "Syncing…" until the alarm tick arrives.
+    if (
+      hasAuth &&
+      hasScope &&
+      !ui.lastSyncAt &&
+      !ui.lastSyncError &&
+      !ui.rateLimitResetAt
+    ) {
+      try {
+        chrome.runtime?.sendMessage?.({
+          ...adapter.syncMessage,
+          manual: true
+        })
+      } catch {
+        // silent
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // intentionally once on mount
+  }, [])
 
   const counts = useMemo(
-    () => countByView(prList, repoList, hiddenIds),
-    [prList, repoList, hiddenIds]
+    () => countByView(prs, gate, hidden),
+    [prs, gate, hidden]
   )
 
   // ── Context menu state ──────────────────────────────────────────────────
   const [menuOpen,   setMenuOpen]   = useState(false)
-  const [menuPr,     setMenuPr]     = useState<PullRequest | null>(null)
+  const [menuPr,     setMenuPr]     = useState<NormalizedPr | null>(null)
   const [menuAnchor, setMenuAnchor] = useState<ContextMenuAnchor | null>(null)
 
-  const handleKebab = useCallback((pr: PullRequest, el: HTMLElement) => {
+  const handleKebab = useCallback((pr: NormalizedPr, el: HTMLElement) => {
     setMenuPr(pr)
     setMenuAnchor({ kind: "element", el })
     setMenuOpen(true)
@@ -92,117 +98,118 @@ export function PrApp({ theme }: Props) {
   // ── Hide / unhide ───────────────────────────────────────────────────────
   const handleHide = useCallback(() => {
     if (!menuPr) return
-    void setHidden(hidePr(hiddenIds, menuPr.id))
-  }, [menuPr, hiddenIds, setHidden])
+    void setHidden(hidePr(hidden, menuPr.id))
+  }, [menuPr, hidden, setHidden])
 
   const handleUnhide = useCallback(() => {
     if (!menuPr) return
-    void setHidden(unhidePr(hiddenIds, menuPr.id))
-  }, [menuPr, hiddenIds, setHidden])
+    void setHidden(unhidePr(hidden, menuPr.id))
+  }, [menuPr, hidden, setHidden])
 
-  /** Quick-action button on each card: hides if visible, unhides if in Hidden view. */
   const handleDirectToggleHide = useCallback(
-    (pr: PullRequest) => {
-      if (hiddenIds.includes(pr.id)) {
-        void setHidden(unhidePr(hiddenIds, pr.id))
+    (pr: NormalizedPr) => {
+      if (hidden.includes(pr.id)) {
+        void setHidden(unhidePr(hidden, pr.id))
       } else {
-        void setHidden(hidePr(hiddenIds, pr.id))
+        void setHidden(hidePr(hidden, pr.id))
       }
     },
-    [hiddenIds, setHidden]
+    [hidden, setHidden]
   )
 
   // ── Navigation ──────────────────────────────────────────────────────────
   const handleTabChange = useCallback(
-    (tab: PrTab) => {
-      void setUi({ ...uiState, activeTab: tab, activeView: tab })
+    (tab: Tab) => {
+      void setUi({ ...ui, activeTab: tab, activeView: tab })
     },
-    [uiState, setUi]
+    [ui, setUi]
   )
 
   const handleChangeView = useCallback(
-    (view: GitHubView) => {
+    (view: View) => {
       if (view === "mine" || view === "review" || view === "all") {
-        void setUi({ ...uiState, activeTab: view, activeView: view })
+        void setUi({ ...ui, activeTab: view, activeView: view })
       } else {
-        // repo key, "hidden", or "changes" — keep activeTab unchanged
-        void setUi({ ...uiState, activeView: view })
+        void setUi({ ...ui, activeView: view })
       }
     },
-    [uiState, setUi]
+    [ui, setUi]
   )
 
   const handleToggleExpanded = useCallback(() => {
-    void setUi({ ...uiState, expanded: !uiState.expanded })
-  }, [uiState, setUi])
+    void setUi({ ...ui, expanded: !ui.expanded })
+  }, [ui, setUi])
 
   const handleChangesClick = useCallback(() => {
-    void setUi({ ...uiState, activeView: "changes" })
-  }, [uiState, setUi])
+    void setUi({ ...ui, activeView: "changes" })
+  }, [ui, setUi])
 
   const handleClearChanges = useCallback(() => {
     void setChanges([])
-    void setUi({ ...uiState, activeView: uiState.activeTab })
-  }, [setChanges, uiState, setUi])
+    void setUi({ ...ui, activeView: ui.activeTab })
+  }, [setChanges, ui, setUi])
 
   // ── Sync ────────────────────────────────────────────────────────────────
   const handleRefresh = useCallback(() => {
     try {
-      chrome.runtime?.sendMessage?.({ type: "gh:sync", manual: true })
+      chrome.runtime?.sendMessage?.({
+        ...adapter.syncMessage,
+        manual: true
+      })
     } catch {
       // silent
     }
-  }, [])
+  }, [adapter])
 
   const handleConnectClick = useCallback(() => {
     try {
-      chrome.runtime?.sendMessage?.({ type: "openOptionsPage", hash: "github" })
+      chrome.runtime?.sendMessage?.({
+        type: "openOptionsPage",
+        hash: adapter.optionsHash
+      })
     } catch {
       // silent
     }
-  }, [])
+  }, [adapter])
 
-  // ── Is currently shown PR hidden? ───────────────────────────────────────
-  const isMenuPrHidden = menuPr ? hiddenIds.includes(menuPr.id) : false
-
-  // ── Layout ──────────────────────────────────────────────────────────────
-  const isChangesView = uiState.activeView === "changes"
+  const isMenuPrHidden = menuPr ? hidden.includes(menuPr.id) : false
+  const isChangesView = ui.activeView === "changes"
 
   const mainPane = (
     <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, overflow: "hidden" }}>
-      {/* Viewer strip */}
-      <PrViewerHeader auth={authState} theme={theme} />
+      <PrViewerHeader adapter={adapter} viewer={viewer} theme={theme} />
 
-      {/* Panel header: title + refresh + segmented tabs + expand */}
       <PrHeader
-        ui={uiState}
+        adapter={adapter}
+        ui={ui}
         counts={counts}
         now={now}
         canExpand={canExpand}
         theme={theme}
         unreadChanges={sessionUnread}
-        totalChanges={changesList.length}
+        totalChanges={changes.length}
         onTabChange={handleTabChange}
         onToggleExpanded={handleToggleExpanded}
         onRefresh={handleRefresh}
         onChangesClick={handleChangesClick}
       />
 
-      {/* Changes feed or PR list */}
       {isChangesView ? (
         <ChangesView
-          changes={changesList}
+          changes={changes}
           now={now}
           theme={theme}
           onClear={handleClearChanges}
         />
       ) : (
         <PrListView
-          auth={authState}
-          ui={uiState}
-          prs={prList}
-          repos={repoList}
-          hidden={hiddenIds}
+          adapter={adapter}
+          ui={ui}
+          prs={prs}
+          hidden={hidden}
+          hasAuth={hasAuth}
+          hasScope={hasScope}
+          gate={gate}
           now={now}
           theme={theme}
           onKebab={handleKebab}
@@ -214,22 +221,24 @@ export function PrApp({ theme }: Props) {
     </div>
   )
 
+  const Sidebar = adapter.Sidebar
+
   return (
     <div style={{ display: "flex", height: "100%", overflow: "hidden", position: "relative" }}>
       {expanded && (
-        <PrSidebar
+        <Sidebar
           theme={theme}
-          activeView={uiState.activeView}
+          activeView={ui.activeView}
           counts={counts}
-          totalChanges={changesList.length}
+          totalChanges={changes.length}
           onChangeView={handleChangeView}
         />
       )}
 
       {mainPane}
 
-      {/* Context menu — renders position:absolute relative to the panel */}
       <PrContextMenu
+        adapter={adapter}
         pr={menuPr}
         open={menuOpen}
         anchor={menuAnchor}
