@@ -11,6 +11,10 @@
 <link rel="icon" href="assets/icon.png" />
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="styles.css" />
+<style>
+  /* hard override: ensure nothing bleeds past viewport */
+  html, body { max-width: 100%; overflow-x: hidden; }
+</style>
 <meta name="google-site-verification" content="sgI2PvNeuSHDzuBzGGru_-zCNmZ9Ta3xfLwuU29SuSc" />
 </head>
 <body class="relative">
@@ -19,7 +23,7 @@
 <div class="bg-glow"></div>
 
 <!-- decorative rail mirroring the actual product -->
-<aside class="deco-rail" aria-hidden="true">
+<div class="deco-rail" aria-hidden="true" role="presentation">
   <div class="tile active">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
   </div>
@@ -32,30 +36,30 @@
   <div class="tile">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
   </div>
-</aside>
+</div>
 
 <!-- NAV -->
 <nav class="nav">
   <div class="container nav-inner">
     <a href="index.html" class="logo-lockup">
-      <img src="assets/icon.png" alt="Glimpse Bar" />
-      <span class="serif text-[26px]">Glimpse Bar</span>
+      <img src="assets/icon.png" alt="" />
+      <span class="serif nav-title text-[26px]">Glimpse Bar</span>
     </a>
     <div class="nav-links">
       <a class="lnk hide-sm" href="#features">Features</a>
       <a class="lnk hide-sm" href="#soon">Roadmap</a>
       <a class="lnk" href="privacy.html">Privacy</a>
-      <a class="lnk" href="https://glimpsebar.featurebase.app/" target="_blank" rel="noopener">Feedback</a>
-      <span class="eyebrow hide-sm" style="font-size:11px;letter-spacing:0.16em;padding-left:8px;border-left:1px solid var(--line);"><span class="dot"></span>v1.0.0</span>
+      <a class="lnk hide-xs" href="https://glimpsebar.featurebase.app/" target="_blank" rel="noopener">Feedback</a>
+      <span class="eyebrow hide-sm" style="font-size:11px;letter-spacing:0.16em;padding-left:8px;border-left:1px solid var(--line);"><span class="dot" aria-hidden="true"></span>v1.0.0</span>
     </div>
   </div>
 </nav>
 
 <!-- HERO -->
-<header class="section hero" style="border-top: 0; padding-top: clamp(56px, 8vw, 96px);">
+<header class="section section-first hero" style="padding-top: clamp(56px, 8vw, 96px);">
   <div class="container">
     <div class="reveal" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:24px;margin-bottom:48px;">
-      <div class="eyebrow"><span class="dot"></span>v1.0.0 · Chrome</div>
+      <div class="eyebrow"><span class="dot" aria-hidden="true"></span>v1.0.0 · Chrome</div>
       <div class="section-num">00 / Index</div>
     </div>
 
@@ -71,7 +75,7 @@
         </p>
 
         <div class="reveal" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:36px;" id="install">
-          <a class="btn btn-primary" href="#install">
+          <a class="btn btn-primary" href="https://chromewebstore.google.com/detail/glimpse-bar" target="_blank" rel="noopener" aria-label="Add Glimpse Bar to Chrome (opens Chrome Web Store)">
             Add to Chrome
             <svg class="arr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
@@ -96,6 +100,7 @@
             controls
             muted
             playsinline
+            aria-label="Glimpse Bar product demo"
             style="width:100%;display:block;background:#000;"
           ></video>
         </div>
@@ -105,7 +110,7 @@
 </header>
 
 <!-- VALUE PROP -->
-<section class="section" id="features">
+<section class="section" id="features" aria-label="Features">
   <div class="container">
     <div class="reveal" style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:64px;flex-wrap:wrap;gap:20px;">
       <div style="max-width:48ch;">
@@ -121,7 +126,7 @@
     </div>
 
     <!-- Feature 1: Todo -->
-    <div class="feature reveal" style="margin-bottom:120px;">
+    <div class="feature reveal">
       <div class="feature-text">
         <div class="eyebrow" style="margin-bottom:14px;">01 — Tasks</div>
         <h3 class="h2 serif">Tasks that don't<br/><span class="serif-it">follow you elsewhere.</span></h3>
@@ -164,7 +169,7 @@
 </section>
 
 <!-- COMING SOON -->
-<section class="section" id="soon">
+<section class="section" id="soon" aria-label="Roadmap">
   <div class="container">
     <div class="reveal" style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:48px;flex-wrap:wrap;gap:20px;">
       <div>
@@ -182,7 +187,7 @@
       <!-- ── CODE REVIEWS ── -->
       <div class="soon-category">
         <span class="cat-label">Code Reviews</span>
-        <span class="cat-badge">GitHub ✓ shipped</span>
+        <span class="cat-badge" aria-label="GitHub — shipped">GitHub ✓ shipped</span>
       </div>
 
       <article class="soon-card">
@@ -283,20 +288,20 @@
 <!-- PRINCIPLES -->
 <section class="section">
   <div class="container">
-    <div class="reveal" style="display:grid;grid-template-columns:1fr 1.6fr;gap:64px;align-items:start;">
-      <div style="position:sticky;top:96px;">
+    <div class="reveal principles-grid">
+      <div class="principles-left">
         <div class="eyebrow" style="margin-bottom:18px;">Principles</div>
         <div class="section-num" style="margin-bottom:32px;">04 / How it behaves</div>
-        <h2 class="serif" style="font-size:clamp(32px,3.2vw,48px);line-height:1.08;letter-spacing:-0.02em;margin-bottom:20px;">
+        <h2 class="serif" style="font-size:clamp(28px,3.2vw,48px);line-height:1.08;letter-spacing:-0.02em;margin-bottom:20px;">
           Built to stay<br/><span class="serif-it">out of the way.</span>
         </h2>
         <p style="color:var(--ink-mute);font-size:15px;line-height:1.65;max-width:30ch;">
           Three constraints we set before writing the first line of code — and haven't broken since.
         </p>
       </div>
-      <div style="display:grid;gap:36px;">
-        <div style="display:grid;grid-template-columns:80px 1fr;gap:24px;align-items:baseline;">
-          <span class="serif" style="font-size:48px;color:var(--accent-2);">01</span>
+      <div class="principles-right">
+        <div class="principle-row">
+          <span class="principle-num serif">01</span>
           <div>
             <h3 class="serif" style="font-size:28px;line-height:1.1;margin-bottom:6px;">Quiet by default.</h3>
             <p style="color:var(--ink-mute);font-size:15px;line-height:1.6;">
@@ -304,8 +309,8 @@
             </p>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:80px 1fr;gap:24px;align-items:baseline;">
-          <span class="serif" style="font-size:48px;color:var(--accent-2);">02</span>
+        <div class="principle-row">
+          <span class="principle-num serif">02</span>
           <div>
             <h3 class="serif" style="font-size:28px;line-height:1.1;margin-bottom:6px;">Local first.</h3>
             <p style="color:var(--ink-mute);font-size:15px;line-height:1.6;">
@@ -313,8 +318,8 @@
             </p>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:80px 1fr;gap:24px;align-items:baseline;">
-          <span class="serif" style="font-size:48px;color:var(--accent-2);">03</span>
+        <div class="principle-row">
+          <span class="principle-num serif">03</span>
           <div>
             <h3 class="serif" style="font-size:28px;line-height:1.1;margin-bottom:6px;">One motion language.</h3>
             <p style="color:var(--ink-mute);font-size:15px;line-height:1.6;">
@@ -331,13 +336,13 @@
 <section class="section">
   <div class="container">
     <div class="reveal" style="text-align:center;max-width:48ch;margin:0 auto;">
-      <div class="eyebrow" style="margin-bottom:24px;"><span class="dot"></span>Free · no account · your data stays on your device</div>
+      <div class="eyebrow" style="margin-bottom:24px;"><span class="dot" aria-hidden="true"></span>Free · no account · your data stays on your device</div>
       <h2 class="h2 serif">
         Stop opening tabs <span class="serif-it">just to check.</span>
       </h2>
       <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:32px;">
-        <a class="btn btn-primary" href="#install">
-          Install for Chrome
+        <a class="btn btn-primary" href="https://chromewebstore.google.com/detail/glimpse-bar" target="_blank" rel="noopener" aria-label="Add Glimpse Bar to Chrome (opens Chrome Web Store)">
+          Add to Chrome
           <svg class="arr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </a>
       </div>
@@ -352,11 +357,11 @@
     <div class="row">
       <div>
         <a href="index.html" class="logo-lockup">
-          <img src="assets/icon.png" alt="Glimpse Bar" />
+          <img src="assets/icon.png" alt="" />
           <span class="serif" style="font-size:26px;">Glimpse Bar</span>
         </a>
         <p style="color:var(--ink-faint);font-size:13px;max-width:38ch;margin-top:12px;line-height:1.55;">
-          A peek-only sidebar for the things you re-check most. Built quietly in Chrome, Edge, and Firefox.
+          A peek-first extension for the things you re-check most. Built quietly in Chrome, Edge, and Firefox.
         </p>
       </div>
       <div style="display:flex;gap:48px;flex-wrap:wrap;">
@@ -372,7 +377,7 @@
           <div class="meta" style="margin-bottom:14px;">Support</div>
           <div style="display:grid;gap:8px;">
             <a class="lnk" style="color:var(--ink-mute);font-size:14px;text-decoration:none;" href="https://glimpsebar.featurebase.app/" target="_blank" rel="noopener">Feedback</a>
-            <a class="lnk" style="color:var(--ink-mute);font-size:14px;text-decoration:none;" href="https://github.com">GitHub Issues</a>
+
             <a class="lnk" style="color:var(--ink-mute);font-size:14px;text-decoration:none;" href="privacy.html">Privacy</a>
             <a class="lnk" style="color:var(--ink-mute);font-size:14px;text-decoration:none;" href="mailto:glimpse.bar@gmail.com">Email</a>
           </div>

@@ -8,13 +8,16 @@
 <link rel="icon" href="assets/icon.png" />
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="styles.css" />
+<style>
+  html, body { max-width: 100%; overflow-x: hidden; }
+</style>
 </head>
 <body class="relative">
 
 <div class="bg-grain"></div>
 <div class="bg-glow"></div>
 
-<aside class="deco-rail" aria-hidden="true">
+<div class="deco-rail" aria-hidden="true" role="presentation">
   <div class="tile">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
   </div>
@@ -24,23 +27,23 @@
   <div class="tile active">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
   </div>
-</aside>
+</div>
 
 <nav class="nav">
   <div class="container nav-inner">
     <a href="index.html" class="logo-lockup">
-      <img src="assets/icon.png" alt="Glimpse Bar" />
-      <span class="serif text-[22px]">Glimpse Bar</span>
+      <img src="assets/icon.png" alt="" />
+      <span class="serif nav-title text-[26px]">Glimpse Bar</span>
     </a>
     <div class="nav-links">
       <a class="lnk" href="index.html">Home</a>
       <a class="lnk" href="index.html#features">Features</a>
-      <a class="lnk" href="https://github.com">GitHub</a>
+      <a class="lnk" href="https://github.com/vipulbhj/glimpse-bar">GitHub</a>
     </div>
   </div>
 </nav>
 
-<header class="section" style="border-top:0;padding-top:clamp(56px,8vw,96px);padding-bottom:48px;">
+<header class="section section-first" style="padding-top:clamp(56px,8vw,96px);padding-bottom:48px;">
   <div class="container">
     <div class="reveal" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:24px;margin-bottom:36px;">
       <div class="eyebrow">Last updated · 2026-05-05</div>
@@ -53,7 +56,7 @@
   </div>
 </header>
 
-<section class="section" style="border-top:0;padding-top:0;padding-bottom:clamp(80px,12vw,144px);">
+<section class="section section-first" style="padding-top:0;padding-bottom:clamp(80px,12vw,144px);">
   <div class="container">
     <article class="prose reveal">
 
@@ -92,10 +95,10 @@
   <div class="container">
     <div class="row">
       <a href="index.html" class="logo-lockup">
-        <img src="assets/icon.png" alt="Glimpse Bar" />
+        <img src="assets/icon.png" alt="" />
         <span class="serif" style="font-size:22px;">Glimpse Bar</span>
       </a>
-      <div class="meta">© <span data-year>2026</span> · <a class="lnk" style="color:var(--ink-mute);text-decoration:none;" href="https://github.com">GitHub</a> · <a class="lnk" style="color:var(--ink-mute);text-decoration:none;" href="index.html">Home</a></div>
+      <div class="meta">© <span data-year>2026</span> · <a class="lnk" style="color:var(--ink-mute);text-decoration:none;" href="https://github.com/vipulbhj/glimpse-bar">GitHub</a> · <a class="lnk" style="color:var(--ink-mute);text-decoration:none;" href="index.html">Home</a></div>
     </div>
   </div>
 </footer>
