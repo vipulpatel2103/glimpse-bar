@@ -1,6 +1,6 @@
 import { CheckSquare, ExternalLink, Github, Settings } from "lucide-react"
 
-import bbIcon from "~/assets/bb.png"
+import bbIcon from "~/assets/bb.svg"
 import type { AppDefinition } from "./types"
 
 const PlaceholderRenderer = () => null

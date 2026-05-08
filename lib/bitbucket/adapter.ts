@@ -5,7 +5,7 @@ import { Building2, EyeOff, GitPullRequest, Inbox, KeyRound } from "lucide-react
 import { useMemo } from "react"
 import type { WxtStorageItem } from "@wxt-dev/storage"
 
-import bbIcon from "~/assets/bb.png"
+import bbIcon from "~/assets/bb.svg"
 import { BbSidebar } from "~/entrypoints/glimpse.content/components/bitbucket/BbSidebar"
 import { useStorageItem } from "~/entrypoints/glimpse.content/hooks/useStorageItem"
 

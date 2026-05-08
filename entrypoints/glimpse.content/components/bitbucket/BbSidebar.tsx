@@ -1,7 +1,7 @@
 import { Fragment } from "react"
 import { EyeOff, GitPullRequest, Inbox, Layers } from "lucide-react"
 
-import bbIcon from "~/assets/bb.png"
+import bbIcon from "~/assets/bb.svg"
 import type { SidebarProps } from "~/lib/pr/adapter"
 import { getRepoColor } from "~/lib/pr/format"
 import {
