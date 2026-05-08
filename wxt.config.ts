@@ -5,7 +5,7 @@ export default defineConfig({
   manifest: {
     name: "Glimpse Bar",
     description:
-      "A floating transparent rail on every web page — manage tasks, track plans, and review GitHub PRs without switching tabs.",
+      "A floating transparent icon rail on every web page. Open quick side panels without leaving the page.",
     // `contextMenus` — right-click → "Add selection / page as task" (Phase 01).
     // `action`       — toolbar icon + badge counter.
     // `alarms`       — GitHub PR auto-refresh every N minutes (Phase 02).
