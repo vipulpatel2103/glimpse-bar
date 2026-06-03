@@ -252,6 +252,33 @@ No springs, no overshoots, no bounces. Always honor `prefers-reduced-motion: red
 - Bar tile: `size={18} strokeWidth={2.25}`
 - Panel header / Option Page: `size={16} strokeWidth={2}`
 - Drag grip: 2 rows × 4 cols of 3px circles (NOT a Lucide icon — looks like `::::`)
+- Apps may also ship a raster brand mark via `iconUrl` (e.g. Bitbucket's `bb.png`). `AppIconButton` and the AppVisibility row prefer `iconUrl` when set; the panel's fallback header path also reads it. Don't bake the Lucide assumption into new bar / sidebar surfaces.
+
+### Bitbucket Cloud — three identifiers per user, only `account_id` works in REST queries
+
+Bitbucket users have **three** different identifiers and they're easy to mix up:
+
+- `account_id` — opaque, stable, returned by `/2.0/user`. Use this in `q=...` filters (`reviewers.account_id="..."`).
+- `nickname` — short public handle. Use for display + initials fallback.
+- `uuid` — a fourth, deprecated identifier. Don't use; `account_id` is the modern equivalent.
+
+Substituting `uuid` for `account_id` in the search query silently returns zero PRs (no error). The same trap applies to participants: deriving review state needs `participants[]` keyed by `user.account_id`, not `nickname`.
+
+### Bitbucket Cloud auth — scoped API tokens, Basic with email + token
+
+Atlassian retired App Passwords on **2025-09-09**; existing ones are disabled on **2026-06-09**. The replacement is **scoped API tokens** created at `id.atlassian.com/manage-profile/security/api-tokens`.
+
+Auth header is `Authorization: Basic base64(email:api_token)`:
+
+- **Username slot = Atlassian account email.** Not the Bitbucket username slug. Putting the username slug here returns 401.
+- **`Bearer <token>` is rejected** with `"Token is invalid, expired, or not supported for this endpoint."` Don't try to "upgrade" to Bearer — Bitbucket Cloud's REST 2.0 doesn't support it for these tokens.
+- **Scope namespace is Bitbucket-suffixed**: `read:user:bitbucket`, `read:workspace:bitbucket`, `read:repository:bitbucket`, `read:pullrequest:bitbucket`. The Atlassian-account-level `read:account` scope is NOT what `/2.0/user` wants on Bitbucket — it wants `read:user:bitbucket`.
+
+When a request 403s, the response body's `error.detail.required` / `error.detail.granted` arrays tell you exactly which scope is missing — read it before guessing.
+
+### Bitbucket Cloud — `/2.0/user/permissions/workspaces` is gone, use `/2.0/workspaces`
+
+The `/2.0/user/permissions/workspaces` endpoint returns **410 Gone** post-App-Password sunset. Use `/2.0/workspaces` instead — same intent, flatter shape (each item is a workspace, not a `{ workspace, permission }` membership wrapper). Requires `read:workspace:bitbucket` scope.
 
 ---
 

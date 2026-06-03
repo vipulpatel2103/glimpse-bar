@@ -1,13 +1,7 @@
-import {
-  AlertTriangle,
-  Check,
-  Clock,
-  Minus,
-  X
-} from "lucide-react"
+import { AlertTriangle, Check, Clock, Minus, X } from "lucide-react"
 
-import { overallStateMeta } from "~/lib/github/format"
-import type { OverallState } from "~/lib/github/types"
+import { overallStateMeta } from "~/lib/pr/format"
+import type { OverallState } from "~/lib/pr/types"
 
 interface Props {
   state: OverallState
@@ -27,10 +21,10 @@ export function PrOverallStateIcon({ state, theme }: Props) {
   const bg = theme === "dark" ? colors.dark : colors.light
 
   const Icon =
-    meta.icon === "Check"         ? Check         :
-    meta.icon === "X"             ? X             :
-    meta.icon === "AlertTriangle" ? AlertTriangle  :
-    meta.icon === "Clock"         ? Clock         :
+    meta.icon === "Check"         ? Check :
+    meta.icon === "X"             ? X :
+    meta.icon === "AlertTriangle" ? AlertTriangle :
+    meta.icon === "Clock"         ? Clock :
     Minus
 
   return (

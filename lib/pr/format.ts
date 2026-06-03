@@ -1,17 +1,18 @@
-// Pure formatting utilities for the GitHub PR panel. No side effects.
+// Pure formatting + status-meta helpers shared by every PR provider.
+// No side effects, no storage access.
 
 import type {
   CiState,
   MergeState,
+  NormalizedPr,
   OverallState,
-  PullRequest,
   ReviewDecision,
   ReviewerState
 } from "./types"
 
 // ── Repo color palette ─────────────────────────────────────────────────────
 // Deterministic color per repo key so the same repo always gets the same
-// color across panel renders, even with 100+ repos.
+// color across panel renders.
 
 const REPO_COLORS = [
   "#22c55e", // green
@@ -25,7 +26,7 @@ const REPO_COLORS = [
   "#14b8a6", // teal
   "#f43f5e", // rose
   "#8b5cf6", // violet
-  "#10b981", // emerald
+  "#10b981"  // emerald
 ] as const
 
 export function getRepoColor(key: string): string {
@@ -43,7 +44,6 @@ const MIN = 60 * SEC
 const HOUR = 60 * MIN
 const DAY = 24 * HOUR
 
-/** Long form for card meta line: "just now", "2m ago", "5h ago", "3d ago", "Apr 30". */
 export function formatRelative(ts: number, now: number): string {
   const diff = now - ts
   if (diff < MIN) return "just now"
@@ -54,7 +54,6 @@ export function formatRelative(ts: number, now: number): string {
   return `${SHORT_MONTH[d.getMonth()]} ${d.getDate()}`
 }
 
-/** Short form for the panel header indicator: "now", "1m ago", "2h ago", "3d ago". */
 export function formatAgoShort(ts: number, now: number): string {
   const diff = now - ts
   if (diff < MIN) return "now"
@@ -71,7 +70,7 @@ const SHORT_MONTH = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 ] as const
 
-/** "Mon Apr 20 2026" — used for the sticky date-group headings. */
+/** "Mon Apr 20 2026" — used for sticky date-group headings. */
 export function formatDayHeading(ts: number): string {
   const d = new Date(ts)
   return `${SHORT_DAY[d.getDay()]} ${SHORT_MONTH[d.getMonth()]} ${d.getDate()} ${d.getFullYear()}`
@@ -79,14 +78,13 @@ export function formatDayHeading(ts: number): string {
 
 // ── Avatar ─────────────────────────────────────────────────────────────────
 
-/** First two characters of login, upper-cased — avatar initials fallback. */
-export function initialsOf(login: string): string {
-  return login.slice(0, 2).toUpperCase()
+/** First two characters of a name, upper-cased — avatar initials fallback. */
+export function initialsOf(name: string): string {
+  return name.slice(0, 2).toUpperCase()
 }
 
 // ── Branch label ───────────────────────────────────────────────────────────
 
-/** "feat/x → main" — used in card tooltip / meta line. */
 export function branchLabel(head: string, base: string): string {
   return `${head} → ${base}`
 }
@@ -117,7 +115,7 @@ export function ciStatusMeta(state: CiState): StatusMeta {
   }
 }
 
-/** Returns null when no chip should be shown (reviewDecision "none" / "commented"). */
+/** Returns null when no chip should be shown (commented / none). */
 export function reviewStatusMeta(decision: ReviewDecision): StatusMeta | null {
   switch (decision) {
     case "approved":
@@ -132,7 +130,7 @@ export function reviewStatusMeta(decision: ReviewDecision): StatusMeta | null {
   }
 }
 
-/** Returns null when no chip should be shown (clean / behind / unknown). */
+/** Returns null for clean/behind/unknown. */
 export function mergeStateMeta(state: MergeState): StatusMeta | null {
   if (state === "conflicting") {
     return { color: "error", icon: "AlertTriangle", label: "Conflicts" }
@@ -159,7 +157,7 @@ export function overallStateMeta(state: OverallState): StatusMeta {
   }
 }
 
-/** Ring color token name for a reviewer's state. */
+/** Ring color token for a reviewer's state. */
 export function reviewerRingColor(state: ReviewerState): StatusColor {
   switch (state) {
     case "approved":          return "success"
@@ -173,10 +171,11 @@ export function reviewerRingColor(state: ReviewerState): StatusColor {
 // ── Overall state derivation ───────────────────────────────────────────────
 
 /**
- * Derives the overall PR state shown by the round icon on each card.
- * Priority: failed > blocked > pending > ready > neutral.
+ * Default derivation rule. Providers that diverge (e.g. Bitbucket has no
+ * `blocked` because mergeState is always `unknown`) can call this and the
+ * result will land on `pending` instead of `blocked` naturally.
  */
-export function deriveOverallState(pr: PullRequest): OverallState {
+export function deriveOverallState(pr: NormalizedPr): OverallState {
   if (pr.ciState === "failure") return "failed"
   if (pr.mergeState === "conflicting") return "blocked"
   if (pr.reviewDecision === "changes_requested") return "blocked"
@@ -186,7 +185,7 @@ export function deriveOverallState(pr: PullRequest): OverallState {
   if (
     pr.reviewDecision === "approved" &&
     (pr.ciState === "success" || pr.ciState === "neutral" || pr.ciState === "none") &&
-    (pr.mergeState === "clean" || pr.mergeState === "behind")
+    (pr.mergeState === "clean" || pr.mergeState === "behind" || pr.mergeState === "unknown")
   ) {
     return "ready"
   }

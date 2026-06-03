@@ -2,9 +2,14 @@ import { useCallback, useEffect, useMemo } from "react"
 
 import { APPS } from "~/lib/apps/registry"
 import type { AppDefinition } from "~/lib/apps/types"
-import type { ChangeEvent, GitHubUiState } from "~/lib/github/types"
+import type {
+  NormalizedChangeEvent,
+  PrUiState
+} from "~/lib/pr/types"
 import {
   activeAppItem,
+  bitbucketChangesItem,
+  bitbucketUiItem,
   edgeItem,
   githubChangesItem,
   githubUiItem,
@@ -63,6 +68,8 @@ export default function App() {
   const [todoUi]                = useStorageItem(todoUiItem)
   const [githubUi]              = useStorageItem(githubUiItem)
   const [githubChanges]         = useStorageItem(githubChangesItem)
+  const [bitbucketUi]           = useStorageItem(bitbucketUiItem)
+  const [bitbucketChanges]      = useStorageItem(bitbucketChangesItem)
 
   // Derive the list of apps shown in the bar.
   // "settings" can never be hidden (it's the only way back to Options).
@@ -75,10 +82,17 @@ export default function App() {
 
   // Blue dot on the GitHub icon when there are unread change events.
   const githubHasDot = useMemo(() => {
-    const changes = githubChanges as ChangeEvent[]
-    const lastOpened = (githubUi as GitHubUiState).lastOpenedAt ?? 0
+    const changes = githubChanges as NormalizedChangeEvent[]
+    const lastOpened = (githubUi as PrUiState).lastOpenedAt ?? 0
     return changes.some((c) => c.createdAt > lastOpened)
   }, [githubChanges, githubUi])
+
+  // Same for Bitbucket.
+  const bitbucketHasDot = useMemo(() => {
+    const changes = bitbucketChanges as NormalizedChangeEvent[]
+    const lastOpened = (bitbucketUi as PrUiState).lastOpenedAt ?? 0
+    return changes.some((c) => c.createdAt > lastOpened)
+  }, [bitbucketChanges, bitbucketUi])
 
   const displayPosition: Position =
     position.x === 0 && position.y === 0
@@ -133,7 +147,7 @@ export default function App() {
           transparency={transparency}
           theme={theme}
           activeApp={activeAppId}
-          badges={{ github: githubHasDot }}
+          badges={{ github: githubHasDot, bitbucket: bitbucketHasDot }}
           onCommitPosition={onCommitPosition}
           onActivateApp={onActivateApp}
         />
@@ -142,12 +156,14 @@ export default function App() {
           edge={edge}
           theme={theme}
           pinned={
-            (activeApp?.id === "todo"   && todoUi.pinned) ||
-            (activeApp?.id === "github" && githubUi.pinned)
+            (activeApp?.id === "todo"      && todoUi.pinned) ||
+            (activeApp?.id === "github"    && githubUi.pinned) ||
+            (activeApp?.id === "bitbucket" && bitbucketUi.pinned)
           }
           expanded={
-            (activeApp?.id === "todo"   && todoUi.expanded) ||
-            (activeApp?.id === "github" && githubUi.expanded)
+            (activeApp?.id === "todo"      && todoUi.expanded) ||
+            (activeApp?.id === "github"    && githubUi.expanded) ||
+            (activeApp?.id === "bitbucket" && bitbucketUi.expanded)
           }
           onClose={onClosePanel}
         />

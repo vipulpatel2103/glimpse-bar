@@ -1,28 +1,32 @@
 import { KeyRound } from "lucide-react"
 
-import { initialsOf } from "~/lib/github/format"
-import type { GitHubAuthState } from "~/lib/github/types"
+import type { ProviderAdapter, ViewerInfo } from "~/lib/pr/adapter"
+import { initialsOf } from "~/lib/pr/format"
 
 interface Props {
-  auth: GitHubAuthState
+  adapter: ProviderAdapter
+  viewer: ViewerInfo | null
   theme: "light" | "dark"
 }
 
-function openOptionsGithub() {
-  try {
-    chrome.runtime?.sendMessage?.({ type: "openOptionsPage", hash: "github" })
-  } catch {
-    // silent — options page will open on next attempt
-  }
-}
-
-export function PrViewerHeader({ auth, theme }: Props) {
+export function PrViewerHeader({ adapter, viewer, theme }: Props) {
   const muted = theme === "dark" ? "#a3a3a3" : "#737373"
   const divider = theme === "dark"
     ? "rgba(255,255,255,0.06)"
     : "rgba(0,0,0,0.06)"
 
-  if (!auth.login) return null
+  if (!viewer) return null
+
+  const onChangeCreds = () => {
+    try {
+      chrome.runtime?.sendMessage?.({
+        type: "openOptionsPage",
+        hash: adapter.optionsHash
+      })
+    } catch {
+      // silent
+    }
+  }
 
   return (
     <div
@@ -35,19 +39,20 @@ export function PrViewerHeader({ auth, theme }: Props) {
         flexShrink: 0
       }}
     >
-      {/* Avatar */}
-      <ViewerAvatar login={auth.login} avatarUrl={auth.avatarUrl} theme={theme} />
+      <ViewerAvatar
+        displayName={viewer.displayName}
+        avatarUrl={viewer.avatarUrl}
+        theme={theme}
+      />
 
-      {/* @login */}
       <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>
-        @{auth.login}
+        @{viewer.displayName}
       </span>
 
-      {/* Change PAT link */}
       <button
         type="button"
-        onClick={openOptionsGithub}
-        title="Change Personal Access Token"
+        onClick={onChangeCreds}
+        title={adapter.changeCredsLabel}
         style={{
           display: "flex",
           alignItems: "center",
@@ -62,22 +67,27 @@ export function PrViewerHeader({ auth, theme }: Props) {
           textDecoration: "none",
           flexShrink: 0
         }}
-        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = theme === "dark" ? "#fafafa" : "#171717")}
-        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = muted)}
+        onMouseEnter={(e) =>
+          ((e.currentTarget as HTMLElement).style.color =
+            theme === "dark" ? "#fafafa" : "#171717")
+        }
+        onMouseLeave={(e) =>
+          ((e.currentTarget as HTMLElement).style.color = muted)
+        }
       >
         <KeyRound size={11} strokeWidth={2} aria-hidden="true" />
-        Change PAT
+        {adapter.changeCredsLabel}
       </button>
     </div>
   )
 }
 
 function ViewerAvatar({
-  login,
+  displayName,
   avatarUrl,
   theme
 }: {
-  login: string
+  displayName: string
   avatarUrl?: string
   theme: "light" | "dark"
 }) {
@@ -85,27 +95,13 @@ function ViewerAvatar({
     return (
       <img
         src={avatarUrl}
-        alt={`@${login}`}
+        alt={`@${displayName}`}
         style={{
           width: 24,
           height: 24,
           borderRadius: "50%",
           objectFit: "cover",
           flexShrink: 0
-        }}
-        onError={(e) => {
-          // Swap to initials span on failure.
-          const span = document.createElement("span")
-          span.textContent = initialsOf(login)
-          span.style.cssText = (e.currentTarget as HTMLElement).style.cssText
-          span.style.display = "inline-flex"
-          span.style.alignItems = "center"
-          span.style.justifyContent = "center"
-          span.style.fontSize = "9px"
-          span.style.fontWeight = "600"
-          span.style.backgroundColor = theme === "dark" ? "#262626" : "#e5e5e5"
-          span.style.color = theme === "dark" ? "#a3a3a3" : "#525252"
-          ;(e.currentTarget as HTMLElement).replaceWith(span)
         }}
       />
     )
@@ -126,7 +122,7 @@ function ViewerAvatar({
         flexShrink: 0
       }}
     >
-      {initialsOf(login)}
+      {initialsOf(displayName)}
     </span>
   )
 }

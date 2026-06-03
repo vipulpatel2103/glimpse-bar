@@ -1,47 +1,34 @@
-import {
-  Bell,
-  EyeOff,
-  GitPullRequest,
-  Github,
-  Inbox,
-  Layers,
-  type LucideIcon
-} from "lucide-react"
+import { Bell, EyeOff, Github, GitPullRequest, Inbox, Layers } from "lucide-react"
 
-import { getRepoColor } from "~/lib/github/format"
-import type { PrCounts } from "~/lib/github/selectors"
-import type { GitHubView, PrTab, RepoKey } from "~/lib/github/types"
+import type { SidebarProps } from "~/lib/pr/adapter"
+import { getRepoColor } from "~/lib/pr/format"
 
-interface Props {
-  theme: "light" | "dark"
-  activeView: GitHubView
-  counts: PrCounts
-  totalChanges: number
-  onChangeView: (view: GitHubView) => void
-}
+import { useStorageItem } from "../../hooks/useStorageItem"
+import { githubReposItem } from "~/lib/storage"
+import type { RepoMeta } from "~/lib/github/types"
 
-interface SystemRow {
-  id: PrTab | "hidden"
-  label: string
-  Icon: LucideIcon
-  count: (c: PrCounts) => number
-}
+import { SidebarDivider } from "../pr/sidebar/SidebarDivider"
+import { SidebarLeafRow } from "../pr/sidebar/SidebarLeafRow"
+import { SidebarSystemRow } from "../pr/sidebar/SidebarSystemRow"
 
-const SYSTEM_ROWS: SystemRow[] = [
-  { id: "mine",   label: "Mine",            Icon: GitPullRequest, count: (c) => c.mine   },
-  { id: "review", label: "Review requests", Icon: Inbox,          count: (c) => c.review },
-  { id: "all",    label: "All",             Icon: Layers,         count: (c) => c.all    },
-  { id: "hidden", label: "Hidden",          Icon: EyeOff,         count: (c) => c.hidden }
-]
+const ITEM_BASE =
+  "flex w-full items-center gap-2 rounded px-2 py-1.5 text-[13px] leading-tight text-left " +
+  "hover:bg-black/[0.04] dark:hover:bg-white/[0.06] " +
+  "focus:outline-none focus-visible:bg-black/[0.04] dark:focus-visible:bg-white/[0.06]"
 
-export function PrSidebar({ theme, activeView, counts, totalChanges, onChangeView }: Props) {
+const ACTIVE = "bg-black/[0.06] dark:bg-white/[0.10] font-semibold"
+
+export function PrSidebar({
+  theme,
+  activeView,
+  counts,
+  totalChanges,
+  onChangeView
+}: SidebarProps) {
   const muted = theme === "dark" ? "#a3a3a3" : "#737373"
   const divider = theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"
-  const activeStyle = "bg-black/[0.06] dark:bg-white/[0.10] font-semibold"
-  const itemBase =
-    "flex w-full items-center gap-2 rounded px-2 py-1.5 text-[13px] leading-tight text-left " +
-    "hover:bg-black/[0.04] dark:hover:bg-white/[0.06] " +
-    "focus:outline-none focus-visible:bg-black/[0.04] dark:focus-visible:bg-white/[0.06]"
+  const [repos] = useStorageItem(githubReposItem)
+  const repoList = repos as RepoMeta[]
 
   const repoEntries = Object.entries(counts.byRepo).sort(([a], [b]) =>
     a.localeCompare(b)
@@ -50,11 +37,10 @@ export function PrSidebar({ theme, activeView, counts, totalChanges, onChangeVie
   return (
     <aside
       role="navigation"
-      aria-label="PR views"
+      aria-label="GitHub PR views"
       className="flex h-full w-[200px] shrink-0 flex-col"
       style={{ borderRight: `1px solid ${divider}` }}
     >
-      {/* Header */}
       <div
         className="flex h-11 shrink-0 items-center gap-1.5 px-3"
         style={{ borderBottom: `1px solid ${divider}` }}
@@ -64,13 +50,12 @@ export function PrSidebar({ theme, activeView, counts, totalChanges, onChangeVie
       </div>
 
       <div className="flex flex-1 flex-col gap-px overflow-y-auto p-2">
-        {/* What's New row — only when there are events */}
         {totalChanges > 0 && (
           <button
             type="button"
             onClick={() => onChangeView("changes")}
             aria-current={activeView === "changes" ? "page" : undefined}
-            className={`${itemBase} ${activeView === "changes" ? activeStyle : ""}`}
+            className={`${ITEM_BASE} ${activeView === "changes" ? ACTIVE : ""}`}
           >
             <Bell size={14} strokeWidth={2} aria-hidden="true" />
             <span className="flex-1 truncate">What&apos;s New</span>
@@ -80,83 +65,62 @@ export function PrSidebar({ theme, activeView, counts, totalChanges, onChangeVie
           </button>
         )}
 
-        {/* System views */}
-        {SYSTEM_ROWS.map(({ id, label, Icon, count }) => {
-          const selected = activeView === id
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => onChangeView(id as GitHubView)}
-              aria-current={selected ? "page" : undefined}
-              className={`${itemBase} ${selected ? activeStyle : ""}`}
-            >
-              <Icon size={14} strokeWidth={2} aria-hidden="true" />
-              <span className="flex-1 truncate">{label}</span>
-              <span
-                className="text-[12px] tabular-nums"
-                style={{ color: muted }}
-              >
-                {count(counts)}
-              </span>
-            </button>
-          )
-        })}
+        <SidebarSystemRow
+          Icon={GitPullRequest}
+          label="Mine"
+          count={counts.mine}
+          selected={activeView === "mine"}
+          theme={theme}
+          onClick={() => onChangeView("mine")}
+        />
+        <SidebarSystemRow
+          Icon={Inbox}
+          label="Review requests"
+          count={counts.review}
+          selected={activeView === "review"}
+          theme={theme}
+          onClick={() => onChangeView("review")}
+        />
+        <SidebarSystemRow
+          Icon={Layers}
+          label="All"
+          count={counts.all}
+          selected={activeView === "all"}
+          theme={theme}
+          onClick={() => onChangeView("all")}
+        />
+        <SidebarSystemRow
+          Icon={EyeOff}
+          label="Hidden"
+          count={counts.hidden}
+          selected={activeView === "hidden"}
+          theme={theme}
+          onClick={() => onChangeView("hidden")}
+        />
 
-        {/* Repos divider + list */}
         {repoEntries.length > 0 && (
           <>
-            <div
-              className="my-2"
-              style={{ height: 1, backgroundColor: divider }}
-            />
-            <div
-              className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wide"
-              style={{ color: muted }}
-            >
-              Repos
-            </div>
-            {repoEntries.map(([key, count]) => {
-              const selected = activeView === key
-              const repoColor = getRepoColor(key)
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => onChangeView(key as RepoKey)}
-                  aria-current={selected ? "page" : undefined}
-                  title={key}
-                  className={`${itemBase} ${selected ? activeStyle : ""}`}
-                >
-                  {/* Color swatch — same 3px bar as the PR cards */}
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      width: 3,
-                      height: 14,
-                      borderRadius: 2,
-                      flexShrink: 0,
-                      backgroundColor: repoColor
-                    }}
-                  />
-                  <span
-                    className="flex-1 truncate font-mono text-[11px]"
-                    style={{ color: muted }}
-                  >
-                    {key}
-                  </span>
-                  <span
-                    className="text-[12px] tabular-nums"
-                    style={{ color: muted }}
-                  >
-                    {count}
-                  </span>
-                </button>
-              )
-            })}
+            <SidebarDivider theme={theme} label="Repos" />
+            {repoEntries.map(([key, count]) => (
+              <SidebarLeafRow
+                key={key}
+                label={key}
+                count={count}
+                color={getRepoColor(key)}
+                selected={activeView === key}
+                theme={theme}
+                onClick={() => onChangeView(key)}
+                disabled={!isRepoEnabled(repoList, key)}
+              />
+            ))}
           </>
         )}
       </div>
     </aside>
   )
+}
+
+function isRepoEnabled(list: RepoMeta[], key: string): boolean {
+  const meta = list.find((r) => r.key === key)
+  return meta === undefined ? true : meta.enabled
 }

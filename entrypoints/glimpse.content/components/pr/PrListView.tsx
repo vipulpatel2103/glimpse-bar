@@ -1,48 +1,37 @@
-import {
-  AlertCircle,
-  EyeOff,
-  Github,
-  GitPullRequest,
-  Inbox,
-  KeyRound,
-  Loader2,
-  type LucideIcon
-} from "lucide-react"
+import { Loader2 } from "lucide-react"
 
+import type { ProviderAdapter, EmptyStateConfig } from "~/lib/pr/adapter"
+import { resolveView } from "~/lib/pr/selectors"
+import type { NormalizedPr, PrUiState } from "~/lib/pr/types"
 import { usePrefersReducedMotion } from "../../hooks/useTheme"
-
-import { resolveView } from "~/lib/github/selectors"
-import type {
-  GitHubAuthState,
-  GitHubUiState,
-  PrId,
-  PullRequest,
-  RepoMeta
-} from "~/lib/github/types"
 
 import { PrCardRow } from "./PrCardRow"
 import { PrDayHeading } from "./PrDayHeading"
 
 interface Props {
-  auth: GitHubAuthState
-  ui: GitHubUiState
-  prs: PullRequest[]
-  repos: RepoMeta[]
-  hidden: PrId[]
+  adapter: ProviderAdapter
+  ui: PrUiState
+  prs: NormalizedPr[]
+  hidden: string[]
+  hasAuth: boolean
+  hasScope: boolean
+  gate: (pr: NormalizedPr) => boolean
   now: number
   theme: "light" | "dark"
-  onKebab?: (pr: PullRequest, anchor: HTMLElement) => void
-  onHide?: (pr: PullRequest) => void
+  onKebab?: (pr: NormalizedPr, anchor: HTMLElement) => void
+  onHide?: (pr: NormalizedPr) => void
   onConnectClick: () => void
   onRetry: () => void
 }
 
 export function PrListView({
-  auth,
+  adapter,
   ui,
   prs,
-  repos,
   hidden,
+  hasAuth,
+  hasScope,
+  gate,
   now,
   theme,
   onKebab,
@@ -53,16 +42,15 @@ export function PrListView({
   const muted = theme === "dark" ? "#a3a3a3" : "#737373"
   const reduced = usePrefersReducedMotion()
 
-  // No PAT → connect CTA.
-  if (!auth.pat) {
-    return (
-      <EmptyState
-        Icon={KeyRound}
-        theme={theme}
-        message="Connect GitHub to see your PRs."
-        action={{ label: "Open settings →", onClick: onConnectClick }}
-      />
+  // Provider gates the empty-state copy/icon based on auth + scope state.
+  if (!hasAuth || !hasScope) {
+    const cfg = adapter.emptyStateForView(
+      ui.activeView,
+      hasAuth,
+      hasScope,
+      { onConnect: onConnectClick, onRetry }
     )
+    return <EmptyState cfg={cfg} theme={theme} />
   }
 
   // First sync loading (no cached data yet).
@@ -76,37 +64,38 @@ export function PrListView({
             color: muted,
             animation: reduced ? "none" : "spin 600ms linear infinite"
           }}
-          aria-label="Syncing GitHub…"
+          aria-label={`Syncing ${adapter.brand.shortName}…`}
         />
-        <span style={{ fontSize: 12, color: muted }}>Syncing GitHub…</span>
+        <span style={{ fontSize: 12, color: muted }}>
+          Syncing {adapter.brand.shortName}…
+        </span>
       </div>
     )
   }
 
   // Sync error.
   if (ui.lastSyncError && prs.length === 0) {
-    return (
-      <EmptyState
-        Icon={AlertCircle}
-        theme={theme}
-        message={`Couldn't sync — ${ui.lastSyncError}`}
-        action={{ label: "Retry", onClick: onRetry }}
-      />
-    )
+    const cfg: EmptyStateConfig = {
+      message: `Couldn't sync — ${ui.lastSyncError}`,
+      action: { label: "Retry", onClick: onRetry }
+    }
+    return <EmptyState cfg={cfg} theme={theme} />
   }
 
-  const groups = resolveView(prs, ui.activeView, ui.activeTab, repos, hidden)
+  const groups = resolveView(prs, ui.activeView, ui.activeTab, gate, hidden)
 
   if (groups.length === 0 || groups.every((g) => g.items.length === 0)) {
-    const { Icon, message } = emptyStateForView(ui.activeView)
-    return <EmptyState Icon={Icon} theme={theme} message={message} />
+    const cfg = adapter.emptyStateForView(
+      ui.activeView,
+      hasAuth,
+      hasScope,
+      { onConnect: onConnectClick, onRetry }
+    )
+    return <EmptyState cfg={cfg} theme={theme} />
   }
 
   return (
-    <div
-      role="list"
-      style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}
-    >
+    <div role="list" style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
       {groups.map((group, idx) => (
         <div key={group.key} role="group" aria-label={group.label}>
           <PrDayHeading label={group.label} theme={theme} isFirst={idx === 0} />
@@ -114,7 +103,7 @@ export function PrListView({
             <div key={pr.id} role="listitem">
               <PrCardRow
                 pr={pr}
-                now={now}
+                adapter={adapter}
                 theme={theme}
                 onKebab={onKebab}
                 onHide={onHide}
@@ -124,33 +113,18 @@ export function PrListView({
           ))}
         </div>
       ))}
-
-      {/* @keyframes spin is defined in PrHeader which always mounts alongside this view */}
     </div>
   )
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function emptyStateForView(view: string): { Icon: LucideIcon; message: string } {
-  if (view === "mine")   return { Icon: GitPullRequest, message: "You haven't opened any PRs." }
-  if (view === "review") return { Icon: Inbox,          message: "No PRs awaiting your review." }
-  if (view === "all")    return { Icon: Github,         message: "No open PRs in your queue." }
-  if (view === "hidden") return { Icon: EyeOff,         message: "Nothing hidden." }
-  // Per-repo view
-  return { Icon: GitPullRequest, message: "No PRs in this repo." }
-}
-
 function EmptyState({
-  Icon,
-  theme,
-  message,
-  action
+  cfg,
+  theme
 }: {
-  Icon: LucideIcon
+  cfg: EmptyStateConfig
   theme: "light" | "dark"
-  message: string
-  action?: { label: string; onClick: () => void }
 }) {
   const muted = theme === "dark" ? "#a3a3a3" : "#737373"
   const mutedHalf = theme === "dark" ? "rgba(163,163,163,0.5)" : "rgba(115,115,115,0.5)"
@@ -168,12 +142,21 @@ function EmptyState({
         textAlign: "center"
       }}
     >
-      <Icon size={32} strokeWidth={1.5} style={{ color: mutedHalf }} aria-hidden="true" />
-      <span style={{ fontSize: 12, color: muted, lineHeight: 1.5 }}>{message}</span>
-      {action && (
+      {cfg.iconUrl ? (
+        <img
+          src={cfg.iconUrl}
+          alt=""
+          aria-hidden="true"
+          style={{ width: 32, height: 32, opacity: 0.5 }}
+        />
+      ) : cfg.Icon ? (
+        <cfg.Icon size={32} strokeWidth={1.5} style={{ color: mutedHalf }} aria-hidden="true" />
+      ) : null}
+      <span style={{ fontSize: 12, color: muted, lineHeight: 1.5 }}>{cfg.message}</span>
+      {cfg.action && (
         <button
           type="button"
-          onClick={action.onClick}
+          onClick={cfg.action.onClick}
           style={{
             fontSize: 12,
             color: "#3b82f6",
@@ -184,7 +167,7 @@ function EmptyState({
             textUnderlineOffset: 2
           }}
         >
-          {action.label}
+          {cfg.action.label}
         </button>
       )}
     </div>

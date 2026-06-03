@@ -2,14 +2,15 @@ import { AnimatePresence, motion } from "framer-motion"
 import { Bell, Clock, Maximize2, Minimize2, RefreshCw } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
-import { formatAgoShort } from "~/lib/github/format"
-import type { PrCounts } from "~/lib/github/selectors"
-import type { GitHubUiState, PrTab } from "~/lib/github/types"
+import type { ProviderAdapter } from "~/lib/pr/adapter"
+import { formatAgoShort } from "~/lib/pr/format"
+import type { PrCounts, PrUiState, Tab } from "~/lib/pr/types"
 
 import { usePrefersReducedMotion } from "../../hooks/useTheme"
 
 interface Props {
-  ui: GitHubUiState
+  adapter: ProviderAdapter
+  ui: PrUiState
   counts: PrCounts
   now: number
   canExpand: boolean
@@ -18,19 +19,20 @@ interface Props {
   unreadChanges: number
   /** Total events in the change feed — controls chip visibility. */
   totalChanges: number
-  onTabChange: (tab: PrTab) => void
+  onTabChange: (tab: Tab) => void
   onToggleExpanded: () => void
   onRefresh: () => void
   onChangesClick: () => void
 }
 
-const TABS: Array<{ id: PrTab; label: string }> = [
+const TABS: Array<{ id: Tab; label: string }> = [
   { id: "mine",   label: "Mine"   },
   { id: "review", label: "Review" },
   { id: "all",    label: "All"    }
 ]
 
 export function PrHeader({
+  adapter,
   ui,
   counts,
   now,
@@ -57,7 +59,6 @@ export function PrHeader({
     }
   }, [ui.lastSyncAt])
 
-  // Rate-limit state — computed from storage, clears automatically as `now` ticks.
   const isRateLimited = !!(ui.rateLimitResetAt && ui.rateLimitResetAt > now)
   const rateLimitMinutes = isRateLimited
     ? Math.max(1, Math.ceil(((ui.rateLimitResetAt ?? 0) - now) / 60_000))
@@ -75,13 +76,12 @@ export function PrHeader({
   const trackBg = theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"
   const thumbBg = theme === "dark" ? "rgba(255,255,255,0.14)" : "#ffffff"
 
-  const tabCount = (tab: PrTab) => {
+  const tabCount = (tab: Tab) => {
     if (tab === "mine")   return counts.mine
     if (tab === "review") return counts.review
     return counts.all
   }
 
-  // Tabs are visually muted when the sidebar "Hidden" view is active.
   const tabsMuted = ui.activeView === "hidden"
 
   const spinStyle: React.CSSProperties =
@@ -132,7 +132,6 @@ export function PrHeader({
           <RefreshCw size={13} strokeWidth={2} aria-hidden="true" style={spinStyle} />
         </button>
 
-        {/* Rate-limit chip — takes precedence over ago/error */}
         {isRateLimited ? (
           <span
             style={{
@@ -186,7 +185,7 @@ export function PrHeader({
         ) : null}
       </div>
 
-      {/* Segmented tab control — muted when Hidden view is active */}
+      {/* Segmented tab control — adapter-supplied layoutId for animation isolation */}
       <div
         role="tablist"
         aria-label="PR queries"
@@ -237,7 +236,7 @@ export function PrHeader({
               <AnimatePresence>
                 {active && (
                   <motion.span
-                    layoutId="gh-tab-thumb"
+                    layoutId={adapter.segmentedLayoutId}
                     aria-hidden="true"
                     style={{
                       position: "absolute",
@@ -270,7 +269,6 @@ export function PrHeader({
         })}
       </div>
 
-      {/* Changes chip — always visible once the feed has events */}
       {totalChanges > 0 && (
         <button
           type="button"
@@ -298,16 +296,12 @@ export function PrHeader({
             fontSize: 11,
             fontWeight: 700,
             lineHeight: 1,
-            // Unread: solid blue pill; seen: icon-only ghost button
-            backgroundColor: unreadChanges > 0
-              ? "#3b82f6"
-              : "transparent",
-            border: unreadChanges > 0
-              ? "none"
-              : `1px solid ${theme === "dark" ? "rgba(255,255,255,0.20)" : "rgba(0,0,0,0.18)"}`,
-            color: unreadChanges > 0
-              ? "#ffffff"
-              : muted,
+            backgroundColor: unreadChanges > 0 ? "#3b82f6" : "transparent",
+            border:
+              unreadChanges > 0
+                ? "none"
+                : `1px solid ${theme === "dark" ? "rgba(255,255,255,0.20)" : "rgba(0,0,0,0.18)"}`,
+            color: unreadChanges > 0 ? "#ffffff" : muted
           }}
         >
           <Bell size={11} strokeWidth={2.5} aria-hidden="true" />
@@ -319,7 +313,6 @@ export function PrHeader({
         </button>
       )}
 
-      {/* Expand/collapse */}
       {canExpand && (
         <button
           type="button"

@@ -5,22 +5,26 @@ import {
   GitMerge,
   GitPullRequest,
   XCircle,
+  type LucideIcon
 } from "lucide-react"
 
-import { formatAgoShort } from "~/lib/github/format"
-import type { ChangeEvent, ChangeEventType } from "~/lib/github/types"
+import { formatAgoShort } from "~/lib/pr/format"
+import type {
+  ChangeEventType,
+  NormalizedChangeEvent
+} from "~/lib/pr/types"
 
 interface Props {
-  changes: ChangeEvent[]
+  changes: NormalizedChangeEvent[]
   now: number
   theme: "light" | "dark"
   onClear: () => void
 }
 
 interface EventMeta {
-  Icon: typeof XCircle
+  Icon: LucideIcon
   color: string
-  label: (e: ChangeEvent) => string
+  label: (e: NormalizedChangeEvent) => string
 }
 
 function getMeta(type: ChangeEventType, theme: "light" | "dark"): EventMeta {
@@ -78,6 +82,11 @@ function getMeta(type: ChangeEventType, theme: "light" | "dark"): EventMeta {
         Icon: GitMerge, color: purple,
         label: (e) => `#${e.prNumber} ${e.prTitle} merged`
       }
+    case "declined":
+      return {
+        Icon: XCircle, color: red,
+        label: (e) => `#${e.prNumber} ${e.prTitle} declined`
+      }
   }
 }
 
@@ -97,7 +106,7 @@ export function ChangesView({ changes, now, theme, onClear }: Props) {
           justifyContent: "center",
           gap: 6,
           padding: "24px 16px",
-          color: muted,
+          color: muted
         }}
       >
         <CheckCircle2 size={28} strokeWidth={1.5} aria-hidden="true" />
@@ -112,15 +121,7 @@ export function ChangesView({ changes, now, theme, onClear }: Props) {
   }
 
   return (
-    <div
-      style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-    >
-      {/* Toolbar row */}
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div
         style={{
           display: "flex",
@@ -128,7 +129,7 @@ export function ChangesView({ changes, now, theme, onClear }: Props) {
           justifyContent: "flex-end",
           padding: "4px 10px",
           borderBottom: `1px solid ${divider}`,
-          flexShrink: 0,
+          flexShrink: 0
         }}
       >
         <button
@@ -141,104 +142,98 @@ export function ChangesView({ changes, now, theme, onClear }: Props) {
             border: "none",
             cursor: "pointer",
             padding: "2px 4px",
-            borderRadius: 4,
+            borderRadius: 4
           }}
         >
           Clear all
         </button>
       </div>
 
-    <div
-      role="list"
-      aria-label="Recent changes"
-      style={{
-        flex: 1,
-        overflowY: "auto",
-        padding: "4px 0",
-      }}
-    >
-      {changes.map((event) => {
-        const { Icon, color, label } = getMeta(event.type, theme)
-        const text = label(event)
-        const ago  = formatAgoShort(event.createdAt, now)
+      <div
+        role="list"
+        aria-label="Recent changes"
+        style={{ flex: 1, overflowY: "auto", padding: "4px 0" }}
+      >
+        {changes.map((event) => {
+          const { Icon, color, label } = getMeta(event.type, theme)
+          const text = label(event)
+          const ago  = formatAgoShort(event.createdAt, now)
 
-        return (
-          <a
-            key={event.id}
-            role="listitem"
-            href={event.prUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            title={`${text} — open PR`}
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 8,
-              padding: "7px 12px",
-              textDecoration: "none",
-              color: "inherit",
-              borderBottom: `1px solid ${divider}`,
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.backgroundColor = hoverBg
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLAnchorElement).style.backgroundColor = ""
-            }}
-          >
-            {/* Event icon */}
-            <Icon
-              size={14}
-              strokeWidth={2}
-              aria-hidden="true"
-              style={{ color, flexShrink: 0, marginTop: 1 }}
-            />
+          return (
+            <a
+              key={event.id}
+              role="listitem"
+              href={event.prUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`${text} — open PR`}
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 8,
+                padding: "7px 12px",
+                textDecoration: "none",
+                color: "inherit",
+                borderBottom: `1px solid ${divider}`,
+                cursor: "pointer"
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.backgroundColor = hoverBg
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.backgroundColor = ""
+              }}
+            >
+              <Icon
+                size={14}
+                strokeWidth={2}
+                aria-hidden="true"
+                style={{ color, flexShrink: 0, marginTop: 1 }}
+              />
 
-            {/* Text */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: 12,
-                  lineHeight: 1.4,
-                  overflow: "hidden",
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                }}
-              >
-                {text}
-              </div>
-              <div
-                style={{
-                  marginTop: 2,
-                  fontSize: 10,
-                  color: muted,
-                  display: "flex",
-                  gap: 4,
-                }}
-              >
-                <span
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
                   style={{
-                    fontFamily: "ui-monospace, monospace",
+                    fontSize: 12,
+                    lineHeight: 1.4,
                     overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    flex: 1,
-                    minWidth: 0,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical"
                   }}
                 >
-                  {event.repo}
-                </span>
-                <span style={{ flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
-                  {ago}
-                </span>
+                  {text}
+                </div>
+                <div
+                  style={{
+                    marginTop: 2,
+                    fontSize: 10,
+                    color: muted,
+                    display: "flex",
+                    gap: 4
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "ui-monospace, monospace",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      flex: 1,
+                      minWidth: 0
+                    }}
+                  >
+                    {event.repo}
+                  </span>
+                  <span style={{ flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
+                    {ago}
+                  </span>
+                </div>
               </div>
-            </div>
-          </a>
-        )
-      })}
-    </div>
+            </a>
+          )
+        })}
+      </div>
     </div>
   )
 }

@@ -1,25 +1,26 @@
 import { ChevronRight, Eye, EyeOff, MessageSquare, MoreHorizontal } from "lucide-react"
 import { useState } from "react"
 
-import { getRepoColor } from "~/lib/github/format"
-import type { PullRequest } from "~/lib/github/types"
+import type { ProviderAdapter } from "~/lib/pr/adapter"
+import { getRepoColor } from "~/lib/pr/format"
+import type { NormalizedPr } from "~/lib/pr/types"
 import { usePrefersReducedMotion } from "../../hooks/useTheme"
 
-import { AvatarChip } from "./AvatarChip"
+import { PrAvatarChip } from "./PrAvatarChip"
 import { PrOverallStateIcon } from "./PrOverallStateIcon"
 import { PrStatusBadges } from "./PrStatusBadges"
 
 interface Props {
-  pr: PullRequest
-  now: number
+  pr: NormalizedPr
+  adapter: ProviderAdapter
   theme: "light" | "dark"
-  onKebab?: (pr: PullRequest, anchor: HTMLElement) => void
-  onHide?: (pr: PullRequest) => void
-  /** When true the quick-action shows Eye + "Unhide PR" and triggers the unhide path. */
+  onKebab?: (pr: NormalizedPr, anchor: HTMLElement) => void
+  onHide?: (pr: NormalizedPr) => void
+  /** When true the quick-action shows Eye + "Unhide PR". */
   isHidden?: boolean
 }
 
-export function PrCardRow({ pr, now, theme, onKebab, onHide, isHidden }: Props) {
+export function PrCardRow({ pr, adapter, theme, onKebab, onHide, isHidden }: Props) {
   const muted = theme === "dark" ? "#a3a3a3" : "#737373"
   const divider = theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"
   const reduced = usePrefersReducedMotion()
@@ -29,11 +30,8 @@ export function PrCardRow({ pr, now, theme, onKebab, onHide, isHidden }: Props) 
   const maxReviewers = 3
   const visibleReviewers = pr.reviewers.slice(0, maxReviewers)
   const overflowReviewers = pr.reviewers.length - visibleReviewers.length
-
-  // Short repo label: strip org prefix when sidebar already shows org context,
-  // but keep full path for unambiguity.
-  const repoLabel = pr.repo
-  const branchLabel = `${pr.headRef} → ${pr.baseRef}`
+  const branchSummary = `${pr.headRef} → ${pr.baseRef}`
+  const pills = adapter.getStatusPills(pr)
 
   return (
     <a
@@ -60,7 +58,7 @@ export function PrCardRow({ pr, now, theme, onKebab, onHide, isHidden }: Props) 
         ;(e.currentTarget as HTMLElement).style.backgroundColor = "transparent"
       }}
     >
-      {/* Repo color bar — 3px left strip */}
+      {/* Repo color bar — 3 px left strip */}
       <div
         aria-hidden="true"
         title={pr.repo}
@@ -68,22 +66,19 @@ export function PrCardRow({ pr, now, theme, onKebab, onHide, isHidden }: Props) 
           width: 3,
           flexShrink: 0,
           backgroundColor: repoColor,
-          borderRadius: "0 0 0 0",
           alignSelf: "stretch"
         }}
       />
 
-      {/* Card content */}
       <div style={{ flex: 1, minWidth: 0, padding: "7px 10px 7px 8px" }}>
-
-        {/* Line 1: #number + title (reserve space for 2 icon buttons) */}
+        {/* Line 1: #displayNumber + title */}
         <div
           style={{
             display: "flex",
             alignItems: "baseline",
             gap: 5,
             marginBottom: 3,
-            paddingRight: 46  // room for hide + kebab on hover
+            paddingRight: 46
           }}
         >
           <span
@@ -95,7 +90,7 @@ export function PrCardRow({ pr, now, theme, onKebab, onHide, isHidden }: Props) 
               flexShrink: 0
             }}
           >
-            #{pr.number}
+            {pr.displayNumber}
           </span>
           <span
             title={pr.title}
@@ -122,7 +117,6 @@ export function PrCardRow({ pr, now, theme, onKebab, onHide, isHidden }: Props) 
             marginBottom: 5
           }}
         >
-          {/* Repo color dot for quick ID when bar is narrow */}
           <span
             aria-hidden="true"
             style={{
@@ -135,7 +129,7 @@ export function PrCardRow({ pr, now, theme, onKebab, onHide, isHidden }: Props) 
             }}
           />
           <span
-            title={`${repoLabel} · ${branchLabel}`}
+            title={`${pr.repo} · ${branchSummary}`}
             style={{
               fontSize: 10,
               color: muted,
@@ -145,18 +139,17 @@ export function PrCardRow({ pr, now, theme, onKebab, onHide, isHidden }: Props) 
               flex: 1
             }}
           >
-            <span style={{ fontWeight: 500 }}>{repoLabel}</span>
-            <span style={{ opacity: 0.6 }}> · {branchLabel}</span>
+            <span style={{ fontWeight: 500 }}>{pr.repo}</span>
+            <span style={{ opacity: 0.6 }}> · {branchSummary}</span>
           </span>
         </div>
 
-        {/* Line 3: avatars → spacer → status pills + state icon + comment count */}
+        {/* Line 3: avatars → status pills + state icon + comment count */}
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {/* Author → reviewers */}
           <div style={{ display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
-            <AvatarChip
-              login={pr.author}
-              avatarUrl={pr.authorAvatarUrl}
+            <PrAvatarChip
+              displayName={pr.author.displayName}
+              avatarUrl={pr.author.avatarUrl}
               size={20}
               theme={theme}
             />
@@ -170,9 +163,9 @@ export function PrCardRow({ pr, now, theme, onKebab, onHide, isHidden }: Props) 
                 />
                 <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
                   {visibleReviewers.map((r) => (
-                    <AvatarChip
-                      key={r.login}
-                      login={r.login}
+                    <PrAvatarChip
+                      key={r.id}
+                      displayName={r.displayName}
                       avatarUrl={r.avatarUrl}
                       reviewState={r.state}
                       size={20}
@@ -180,7 +173,11 @@ export function PrCardRow({ pr, now, theme, onKebab, onHide, isHidden }: Props) 
                     />
                   ))}
                   {overflowReviewers > 0 && (
-                    <AvatarChip login={`+${overflowReviewers}`} size={20} theme={theme} />
+                    <PrAvatarChip
+                      displayName={`+${overflowReviewers}`}
+                      size={20}
+                      theme={theme}
+                    />
                   )}
                 </div>
               </>
@@ -189,7 +186,7 @@ export function PrCardRow({ pr, now, theme, onKebab, onHide, isHidden }: Props) 
 
           <div style={{ flex: 1 }} />
 
-          <PrStatusBadges pr={pr} theme={theme} />
+          <PrStatusBadges pills={pills} theme={theme} />
           <PrOverallStateIcon state={pr.overallState} theme={theme} />
 
           <div style={{ display: "flex", alignItems: "center", gap: 2, color: muted, flexShrink: 0 }}>
@@ -201,7 +198,7 @@ export function PrCardRow({ pr, now, theme, onKebab, onHide, isHidden }: Props) 
         </div>
       </div>
 
-      {/* Quick-hide + kebab — JS-controlled opacity, avoids Tailwind group-hover/inline-style specificity issues in shadow DOM */}
+      {/* Quick-hide + kebab */}
       {(onHide || onKebab) && (
         <div
           style={{
@@ -219,7 +216,7 @@ export function PrCardRow({ pr, now, theme, onKebab, onHide, isHidden }: Props) 
           {onHide && (
             <button
               type="button"
-              aria-label={isHidden ? `Unhide PR #${pr.number}` : `Hide PR #${pr.number}`}
+              aria-label={isHidden ? `Unhide PR ${pr.displayNumber}` : `Hide PR ${pr.displayNumber}`}
               title={isHidden ? "Unhide PR" : "Hide PR"}
               onClick={(e) => {
                 e.preventDefault()
@@ -249,7 +246,7 @@ export function PrCardRow({ pr, now, theme, onKebab, onHide, isHidden }: Props) 
           {onKebab && (
             <button
               type="button"
-              aria-label={`Options for PR #${pr.number}`}
+              aria-label={`Options for PR ${pr.displayNumber}`}
               title="Options"
               onClick={(e) => {
                 e.preventDefault()
