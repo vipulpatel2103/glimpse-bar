@@ -3,7 +3,7 @@ import type { LucideIcon } from "lucide-react"
 
 import type { ProviderId } from "../pr/types"
 
-export type AppId = "todo" | "jira" | "github" | "bitbucket" | "settings"
+export type AppId = "todo" | "notes" | "github" | "bitbucket" | "settings"
 
 export interface AppDefinition {
   id: AppId

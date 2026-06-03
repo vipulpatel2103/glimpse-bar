@@ -37,7 +37,7 @@ A developer / power user keeps glanceable context — TODOs, ticket queues, PR r
 
 ## 4. Functional Requirements
 
-> Each requirement carries a **Phase** column. The phase that delivers the requirement is the folder under [`phases/`](phases/) where it's planned in detail. `setup` = `phases/00-setup-and-ui-ux/`, `todo` = `phases/01-todo/`, `github` = `phases/02-github-prs/`, `jira` = `phases/03-jira/`. "—" means no phase has been planned yet (parking lot in `roadmap.md`).
+> Each requirement carries a **Phase** column. The phase that delivers the requirement is the folder under [`phases/`](phases/) where it's planned in detail. `setup` = `phases/00-setup-and-ui-ux/`, `todo` = `phases/01-todo/`, `github` = `phases/02-github-prs/`, `notes` = `phases/03-notes/`. "—" means no phase has been planned yet (parking lot in `roadmap.md`). _Jira (`phases/03-jira/`) was deferred on 2026-06-03 and replaced by Notes — see `roadmap.md`._
 
 ### 4.1 Glimpse Bar (FR-BAR)
 
@@ -74,7 +74,7 @@ A developer / power user keeps glanceable context — TODOs, ticket queues, PR r
 | FR-APPS-3 | setup | The **TODO**, **Jira**, **GitHub PRs** icons SHALL be clickable; clicking each SHALL open the Glimpse Panel with that app's name in the header and an empty body (real renderers land in later phases). |
 | FR-APPS-4 | todo | TODO panel SHALL support: add item, edit text, toggle done, delete item, persist via `@wxt-dev/storage`. List SHALL sync across tabs in real time. |
 | FR-APPS-5 | github | GitHub PRs panel SHALL show the user's PR review queue, fetched via PAT (later: OAuth). Refresh button manually re-fetches; auto-refresh is configured via `chrome.alarms`. |
-| FR-APPS-6 | jira | Jira panel SHALL show issues assigned to the current user, fetched via Atlassian API token (later: OAuth). |
+| FR-APPS-6 | notes | Notes panel SHALL provide a local notes app (Google-Keep-flavored cards): create / edit / delete notes with a Markdown body or checklist, color tints, labels, pin, archive, and full-text search. Capped at 100 notes × 10 000-char bodies. Persisted via `@wxt-dev/storage`; no network. _(Jira issues — original FR — deferred 2026-06-03; see roadmap.)_ |
 
 ### 4.4 Glimpse Option Page (FR-OPT)
 
@@ -84,7 +84,7 @@ A developer / power user keeps glanceable context — TODOs, ticket queues, PR r
 | FR-OPT-2 | setup | It SHALL provide a **Transparency** slider (0–100%, label shows current value) that updates the bar's `--gb-alpha` CSS variable in real time, persisted to storage. |
 | FR-OPT-3 | todo | "Export TODOs as JSON" + "Import JSON" buttons SHALL be added for TODO data portability. |
 | FR-OPT-4 | github | A "Connections → GitHub" section SHALL accept a PAT and validate it with a "Test connection" button. |
-| FR-OPT-5 | jira | A "Connections → Jira" section SHALL accept host + email + API token and validate. |
+| FR-OPT-5 | notes | A "Notes" section SHALL provide Export / Import JSON, a stored-notes count (`n / 100`, amber at 90), and a default-color picker for new notes. _(Jira "Connections" — original FR — deferred 2026-06-03.)_ |
 
 > Theme picker (System/Light/Dark) and per-app enable toggles are deferred until at least one real app exists to enable/disable. They land alongside the **TODO** phase. The Setup phase ships only the Transparency slider as the user explicitly requested.
 

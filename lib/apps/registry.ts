@@ -1,4 +1,4 @@
-import { CheckSquare, ExternalLink, Github, Settings } from "lucide-react"
+import { CheckSquare, Github, Settings, StickyNote } from "lucide-react"
 
 import bbIcon from "~/assets/bb.svg"
 import type { AppDefinition } from "./types"
@@ -17,12 +17,14 @@ const ALL_APPS: AppDefinition[] = [
     enabled: true
   },
   {
-    id: "jira",
-    name: "Jira",
-    Icon: ExternalLink,
+    id: "notes",
+    name: "Notes",
+    Icon: StickyNote,
+    // Dispatched by `app.id === "notes"` in GlimpsePanel (like TODO); the
+    // Renderer field stays a placeholder so the registry doesn't pull the
+    // whole NotesApp import graph at module load.
     Renderer: PlaceholderRenderer,
-    // Hidden until phases/03-jira ships.
-    enabled: false
+    enabled: true
   },
   {
     id: "github",

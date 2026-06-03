@@ -15,6 +15,7 @@ import { ADAPTERS } from "~/lib/pr/adapters"
 
 import { usePrefersReducedMotion } from "../hooks/useTheme"
 import { useViewportWidth } from "../hooks/useViewportWidth"
+import { NotesApp } from "./notes/NotesApp"
 import { PrApp } from "./pr/PrApp"
 import { TodoApp } from "./todo/TodoApp"
 
@@ -189,6 +190,8 @@ export function GlimpsePanel({
           className="flex flex-col overflow-hidden rounded-2xl">
           {app.id === "todo" ? (
             <TodoApp theme={theme} />
+          ) : app.id === "notes" ? (
+            <NotesApp theme={theme} />
           ) : app.providerId && ADAPTERS[app.providerId] ? (
             <PrApp adapter={ADAPTERS[app.providerId]!} theme={theme} />
           ) : (

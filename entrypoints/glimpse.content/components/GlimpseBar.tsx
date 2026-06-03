@@ -18,6 +18,8 @@ interface GlimpseBarProps {
   badges?: Partial<Record<string, boolean>>
   onCommitPosition: (next: Position, edge: Edge) => void
   onActivateApp: (app: AppDefinition) => void
+  /** Shift+click on the Notes tile → open the bar quick-compose popover. */
+  onQuickComposeNotes?: (anchor: HTMLElement) => void
 }
 
 const clampAlpha = (a: number) => Math.max(0.15, Math.min(1, a))
@@ -31,7 +33,8 @@ export function GlimpseBar({
   activeApp,
   badges,
   onCommitPosition,
-  onActivateApp
+  onActivateApp,
+  onQuickComposeNotes
 }: GlimpseBarProps) {
   // Keep the latest canonical position in a ref so the drag handler can read
   // it on pointerdown without re-creating callbacks on every render.
@@ -139,6 +142,9 @@ export function GlimpseBar({
               theme={theme}
               badgeDot={badges?.[app.id] ?? false}
               onActivate={() => onActivateApp(app)}
+              onShiftActivate={
+                app.id === "notes" ? onQuickComposeNotes : undefined
+              }
               onArrowKey={(dir) => handleArrow(idx, dir)}
             />
           </div>

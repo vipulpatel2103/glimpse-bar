@@ -14,9 +14,13 @@ import {
   githubReposItem,
   githubUiItem,
   listsItem,
+  notesItem,
+  notesUiItem,
   todoUiItem,
   todosItem
 } from "~/lib/storage"
+import { addNote } from "~/lib/notes/mutations"
+import { NOTE_LIMITS } from "~/lib/notes/limits"
 import {
   getViewer as bbGetViewer,
   probeScopes as bbProbeScopes
@@ -44,6 +48,8 @@ type GlimpseMessage =
 
 const MENU_SELECTION = "gb-add-selection"
 const MENU_PAGE = "gb-add-page"
+const MENU_NOTE_SELECTION = "gb-add-note-selection"
+const MENU_NOTE_PAGE = "gb-add-note-page"
 const MAX_TEXT_LEN = 280
 const BADGE_COLOR = "#2563eb"
 const ALARM_GH_SYNC = "gh-sync"
@@ -63,6 +69,57 @@ async function captureToInbox(rawText: string): Promise<void> {
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn("[glimpse-bar] captureToInbox failed", err)
+  }
+}
+
+/**
+ * Tell the content script in `tabId` that the note cap was hit so it can toast.
+ * Background → content needs tabs.sendMessage (runtime.sendMessage won't reach
+ * content scripts). Harmless if no listener exists yet (swallow lastError).
+ */
+function notifyNoteLimit(tabId: number | undefined): void {
+  if (tabId == null) return
+  try {
+    chrome.tabs.sendMessage(tabId, { type: "notesLimitReached" }, () => {
+      void chrome.runtime.lastError
+    })
+  } catch {
+    // No content script on this tab (chrome://, store page) — ignore.
+  }
+}
+
+/** Capture a right-click selection / page into a new note in the All view. */
+async function captureNote(
+  kind: "selection" | "page",
+  info: chrome.contextMenus.OnClickData,
+  tab: chrome.tabs.Tab | undefined
+): Promise<void> {
+  let title = ""
+  let body = ""
+  if (kind === "selection") {
+    body = (info.selectionText ?? "").trim()
+  } else {
+    title = (tab?.title ?? "").trim() || "(untitled page)"
+    body = info.pageUrl ?? tab?.url ?? ""
+  }
+  title = title.slice(0, NOTE_LIMITS.TITLE_MAX)
+  body = body.slice(0, NOTE_LIMITS.BODY_MAX)
+  if (!title && !body) return
+
+  try {
+    const [notes, ui] = await Promise.all([
+      notesItem.getValue(),
+      notesUiItem.getValue()
+    ])
+    const result = addNote(notes, { title, body, color: ui.defaultColor })
+    if ("error" in result) {
+      notifyNoteLimit(tab?.id)
+      return
+    }
+    await notesItem.setValue(result.items)
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("[glimpse-bar] captureNote failed", err)
   }
 }
 
@@ -95,6 +152,16 @@ function registerContextMenus(): void {
     chrome.contextMenus.create({
       id: MENU_PAGE,
       title: "Add page as task",
+      contexts: ["page"]
+    })
+    chrome.contextMenus.create({
+      id: MENU_NOTE_SELECTION,
+      title: "Add selection as note",
+      contexts: ["selection"]
+    })
+    chrome.contextMenus.create({
+      id: MENU_NOTE_PAGE,
+      title: "Add page as note",
       contexts: ["page"]
     })
   })
@@ -332,6 +399,14 @@ export default defineBackground(() => {
       const url = info.pageUrl ?? tab?.url ?? ""
       const text = title ? `${title} — ${url}` : url
       void captureToInbox(text)
+      return
+    }
+    if (info.menuItemId === MENU_NOTE_SELECTION) {
+      void captureNote("selection", info, tab)
+      return
+    }
+    if (info.menuItemId === MENU_NOTE_PAGE) {
+      void captureNote("page", info, tab)
     }
   })
 

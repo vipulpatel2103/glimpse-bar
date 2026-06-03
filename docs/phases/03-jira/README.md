@@ -1,18 +1,26 @@
 # Jira
 
 > **Phase folder:** `docs/phases/03-jira/`
-> **Status:** Stub — not yet planned
-> **Plan when:** the **GitHub PRs** phase ([`../02-github-prs/`](../02-github-prs/)) is shipped and we've learned from it.
+> **Status:** **Deferred (2026-06-03)** — superseded by [`../03-notes/`](../03-notes/) (Notes app). Jira moves to the parking lot in [`../../roadmap.md`](../../roadmap.md).
+> **Plan when:** an OAuth (3LO) story exists, or the project grows a backend the bar can talk to.
 
 ---
 
-## One-line goal
+## Why deferred
+
+- Jira Cloud needs OAuth 3LO for a useful flow; the project has no redirect / token-rotation infrastructure.
+- API tokens work but force every user to mint one in `id.atlassian.com` — high friction for the first "real productivity app" beyond TODO + PRs.
+- A pure-local Notes app delivers a second "wow" without auth, network, or storage budget worry.
+
+The original sketch (issues assigned to current user, API-token-first auth, refresh button + `chrome.alarms`, REST `/rest/api/3/search?jql=…`) is preserved below for whoever picks this up.
+
+---
+
+## Original one-line goal
 
 Show issues assigned to the current user inside the Jira Glimpse Panel.
 
----
-
-## Likely scope (subject to planning)
+## Original likely scope (subject to planning)
 
 - Jira issues panel renderer.
 - Auth: Atlassian API token first (host + email + token in Options). OAuth (3LO) deferred.
@@ -22,14 +30,14 @@ Show issues assigned to the current user inside the Jira Glimpse Panel.
 - Issue rendering: key (e.g., GAR-2141), summary, status pill, priority icon, click-through opens the Jira issue in a new tab.
 - Cache last response.
 
-## Out of scope (explicit, this phase)
+## Original out of scope (this phase)
 
 - Editing issues, transitioning status, posting comments.
 - Multiple Jira tenants per user (parking-lot for v3).
 - Boards, sprints, releases.
 - OAuth (3LO).
 
-## Open questions to settle before planning
+## Open questions left to settle before planning
 
 - Single global JQL vs. user-configurable JQL field in Options? (Likely: ship a sensible default, allow override via "Advanced" expandable.)
 - Server (DC) Jira support, or Cloud only? (Likely: Cloud only for v1; document the gap.)
@@ -37,16 +45,6 @@ Show issues assigned to the current user inside the Jira Glimpse Panel.
 
 ---
 
-## Files this folder will hold (template — to be authored at planning time)
+## What replaced this phase
 
-- `README.md` (this file, expanded)
-- `scope.md`
-- `plan.md`
-- `ui-spec.md`
-- `verification.md`
-
----
-
-## Don't plan this yet
-
-Per the project working agreement, we don't fully spec a phase until the previous phase has shipped. Notes here are intentionally rough.
+**Phase 03 is now Notes** — a Google-Keep / OneNote-flavored notes app with Markdown bodies. See [`../03-notes/`](../03-notes/) for the full scope, plan, UI spec, and verification.

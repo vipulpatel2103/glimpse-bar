@@ -2,7 +2,8 @@ import type { LucideIcon } from "lucide-react"
 import {
   forwardRef,
   type ForwardedRef,
-  type KeyboardEvent
+  type KeyboardEvent,
+  type MouseEvent
 } from "react"
 
 interface AppIconButtonProps {
@@ -15,6 +16,12 @@ interface AppIconButtonProps {
   theme: "light" | "dark"
   badgeDot?: boolean
   onActivate: () => void
+  /**
+   * Shift+click handler. When set and the user holds Shift, this fires with the
+   * tile element (for popover anchoring) instead of `onActivate`. Used by Notes
+   * for the bar quick-compose surface.
+   */
+  onShiftActivate?: (anchor: HTMLElement) => void
   onArrowKey?: (dir: "up" | "down") => void
 }
 
@@ -27,10 +34,19 @@ function AppIconButtonInner(
     theme,
     badgeDot = false,
     onActivate,
+    onShiftActivate,
     onArrowKey
   }: AppIconButtonProps,
   ref: ForwardedRef<HTMLButtonElement>
 ) {
+  const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
+    if (e.shiftKey && onShiftActivate) {
+      e.preventDefault()
+      onShiftActivate(e.currentTarget)
+      return
+    }
+    onActivate()
+  }
   const handleKey = (e: KeyboardEvent<HTMLButtonElement>) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault()
@@ -65,7 +81,7 @@ function AppIconButtonInner(
         type="button"
         aria-label={label}
         aria-pressed={isActive}
-        onClick={onActivate}
+        onClick={handleClick}
         onKeyDown={handleKey}
         style={{
           backgroundColor: tileBg,

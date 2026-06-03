@@ -7,6 +7,7 @@ import { transparencyItem } from "~/lib/storage"
 import { AppVisibilitySection } from "./sections/AppVisibilitySection"
 import { BitbucketSection } from "./sections/BitbucketSection"
 import { GitHubSection } from "./sections/GitHubSection"
+import { NotesSection } from "./sections/NotesSection"
 
 function useTheme(): "light" | "dark" {
   const [isDark, setIsDark] = useState<boolean>(() => {
@@ -90,6 +91,9 @@ function Options() {
 
           <hr className="my-6 border-black/[0.08] dark:border-white/[0.08]" />
           <AppVisibilitySection />
+
+          <hr className="my-6 border-black/[0.08] dark:border-white/[0.08]" />
+          <NotesSection />
 
           <hr className="my-6 border-black/[0.08] dark:border-white/[0.08]" />
           <GitHubSection />

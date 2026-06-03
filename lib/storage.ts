@@ -16,6 +16,8 @@ import type {
 } from "./pr/types"
 import { inboxDefault } from "./todos/types"
 import type { ListMeta, TodoItem, TodoUiState } from "./todos/types"
+import { NOTES_UI_DEFAULT } from "./notes/types"
+import type { LabelMeta, Note, NotesUiState } from "./notes/types"
 
 export type Position = { x: number; y: number }
 export type Edge = "left" | "right"
@@ -70,6 +72,22 @@ export const todoUiItem = storage.defineItem<TodoUiState>(
       sidebarCollapsed: false
     }
   }
+)
+
+// ── Notes phase storage ─────────────────────────────────────────────────
+
+export const notesItem = storage.defineItem<Note[]>("local:gb-notes", {
+  fallback: []
+})
+
+export const labelsItem = storage.defineItem<LabelMeta[]>(
+  "local:gb-note-labels",
+  { fallback: [] }
+)
+
+export const notesUiItem = storage.defineItem<NotesUiState>(
+  "local:gb-notes-ui",
+  { fallback: NOTES_UI_DEFAULT }
 )
 
 // ── Shared PR cache fallback (used by every provider's UI item) ─────────────

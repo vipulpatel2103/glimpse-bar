@@ -75,7 +75,7 @@ entrypoints/
 
 lib/
 ├── storage.ts                          typed storage.defineItem(...) declarations
-└── apps/                               app registry (todo, jira, github, settings)
+└── apps/                               app registry (todo, notes, github, bitbucket, settings)
 
 assets/icon.png                         512×512 source — @wxt-dev/auto-icons emits 16/32/48/128
 wxt.config.ts                           modules + manifest
@@ -279,6 +279,14 @@ When a request 403s, the response body's `error.detail.required` / `error.detail
 ### Bitbucket Cloud — `/2.0/user/permissions/workspaces` is gone, use `/2.0/workspaces`
 
 The `/2.0/user/permissions/workspaces` endpoint returns **410 Gone** post-App-Password sunset. Use `/2.0/workspaces` instead — same intent, flatter shape (each item is a workspace, not a `{ workspace, permission }` membership wrapper). Requires `read:workspace:bitbucket` scope.
+
+### WXT inlines `import()` in content scripts — dynamic import does NOT cut cold bundle
+
+A dynamic `import("marked")` inside a content-script module does **not** produce a separately-fetched chunk. MV3 content scripts can't load arbitrary runtime chunks from the host page (CSP + no extension-relative module loader), so WXT/Vite **inline** the dynamically-imported code directly into the single `content-scripts/glimpse.js`. Confirmed by build output: no extra chunk file appears under `content-scripts/`, and `glimpse.js` grows by the dependency's full size.
+
+Consequence: lazy-importing a heavy dep (e.g. `marked` + `dompurify`, ~85 KB) to "keep it out of the cold bundle" **doesn't work** for content scripts. The bytes are parsed up front regardless. The dynamic `import()` still defers the module's top-level *init/execution* until first call, which is a minor win, so it's not wrong to keep — just don't claim a cold-bundle saving from it. If a dep genuinely must stay out of the content script, the only real levers are: pick a smaller library, or move the work to the background SW / options page (those *can* code-split).
+
+The Notes editor (`renderMarkdown`) keeps the dynamic import for the init-deferral, and accepts that `marked` + `dompurify` ride along in `glimpse.js`. The ~5–15 ms extra parse stays well under NFR-PERF-1's 200 ms mount budget.
 
 ---
 

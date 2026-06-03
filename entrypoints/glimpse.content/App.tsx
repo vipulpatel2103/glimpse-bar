@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { APPS } from "~/lib/apps/registry"
 import type { AppDefinition } from "~/lib/apps/types"
@@ -14,6 +14,7 @@ import {
   githubChangesItem,
   githubUiItem,
   hiddenAppsItem,
+  notesUiItem,
   positionItem,
   todoUiItem,
   transparencyItem,
@@ -24,6 +25,7 @@ import {
 
 import { GlimpseBar } from "./components/GlimpseBar"
 import { GlimpsePanel } from "./components/GlimpsePanel"
+import { NotesQuickCompose } from "./components/notes/NotesQuickCompose"
 import { PopoverPortalProvider } from "./components/PopoverPortal"
 import { useStorageItem } from "./hooks/useStorageItem"
 import { useTheme } from "./hooks/useTheme"
@@ -66,10 +68,39 @@ export default function App() {
   const [activeAppId, setActiveAppId] = useStorageItem(activeAppItem)
   const [hiddenApps]            = useStorageItem(hiddenAppsItem)
   const [todoUi]                = useStorageItem(todoUiItem)
+  const [notesUi]               = useStorageItem(notesUiItem)
   const [githubUi]              = useStorageItem(githubUiItem)
   const [githubChanges]         = useStorageItem(githubChangesItem)
   const [bitbucketUi]           = useStorageItem(bitbucketUiItem)
   const [bitbucketChanges]      = useStorageItem(bitbucketChangesItem)
+
+  // Bar quick-compose: Shift+click on the Notes tile anchors a floating
+  // composer here (lives in App so it survives panel open/close).
+  const [quickAnchor, setQuickAnchor] = useState<DOMRect | null>(null)
+  const onQuickComposeNotes = useCallback((el: HTMLElement) => {
+    setQuickAnchor(el.getBoundingClientRect())
+  }, [])
+
+  // Transient toast (e.g. note-capture limit reached, broadcast by the SW).
+  const [toast, setToast] = useState<string | null>(null)
+  useEffect(() => {
+    const onMsg = (msg: unknown) => {
+      if (
+        msg &&
+        typeof msg === "object" &&
+        (msg as { type?: string }).type === "notesLimitReached"
+      ) {
+        setToast("Note limit reached (100). Archive or delete old notes.")
+      }
+    }
+    chrome.runtime?.onMessage?.addListener(onMsg)
+    return () => chrome.runtime?.onMessage?.removeListener(onMsg)
+  }, [])
+  useEffect(() => {
+    if (!toast) return
+    const h = window.setTimeout(() => setToast(null), 3200)
+    return () => window.clearTimeout(h)
+  }, [toast])
 
   // Derive the list of apps shown in the bar.
   // "settings" can never be hidden (it's the only way back to Options).
@@ -101,6 +132,13 @@ export default function App() {
 
   const activeApp =
     visibleApps.find((a) => a.id === activeAppId && !a.isExternal) ?? null
+
+  // Migration: Phase 03 replaced the (never-shipped) Jira app with Notes. If a
+  // stale `activeAppItem` somehow holds "jira", clear it so the panel doesn't
+  // try to resolve a missing app. Belt-and-braces — the icon never shipped.
+  useEffect(() => {
+    if ((activeAppId as string) === "jira") void setActiveAppId(null)
+  }, [activeAppId, setActiveAppId])
 
   // Auto-close the panel if the user hides the currently-active app.
   useEffect(() => {
@@ -150,6 +188,7 @@ export default function App() {
           badges={{ github: githubHasDot, bitbucket: bitbucketHasDot }}
           onCommitPosition={onCommitPosition}
           onActivateApp={onActivateApp}
+          onQuickComposeNotes={onQuickComposeNotes}
         />
         <GlimpsePanel
           app={activeApp}
@@ -157,16 +196,50 @@ export default function App() {
           theme={theme}
           pinned={
             (activeApp?.id === "todo"      && todoUi.pinned) ||
+            (activeApp?.id === "notes"     && notesUi.pinned) ||
             (activeApp?.id === "github"    && githubUi.pinned) ||
             (activeApp?.id === "bitbucket" && bitbucketUi.pinned)
           }
           expanded={
             (activeApp?.id === "todo"      && todoUi.expanded) ||
+            (activeApp?.id === "notes"     && notesUi.expanded) ||
             (activeApp?.id === "github"    && githubUi.expanded) ||
             (activeApp?.id === "bitbucket" && bitbucketUi.expanded)
           }
           onClose={onClosePanel}
         />
+        {quickAnchor ? (
+          <NotesQuickCompose
+            anchorRect={quickAnchor}
+            edge={edge}
+            theme={theme}
+            onClose={() => setQuickAnchor(null)}
+          />
+        ) : null}
+        {toast ? (
+          <div
+            role="status"
+            aria-live="polite"
+            style={{
+              position: "fixed",
+              bottom: 24,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 2147483647,
+              pointerEvents: "none",
+              maxWidth: "min(360px, 90vw)",
+              padding: "8px 14px",
+              borderRadius: 8,
+              fontSize: 13,
+              lineHeight: 1.3,
+              textAlign: "center",
+              backgroundColor: theme === "dark" ? "#fafafa" : "#171717",
+              color: theme === "dark" ? "#171717" : "#fafafa",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.3)"
+            }}>
+            {toast}
+          </div>
+        ) : null}
       </PopoverPortalProvider>
     </div>
   )

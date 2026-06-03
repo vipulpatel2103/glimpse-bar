@@ -1,3 +1,63 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Notes: rendered Markdown (.gb-prose) ──────────────────────────────────
+   Tailwind's `prose` plugin isn't installed; this is the scoped substitute for
+   the Notes editor's View mode. Light defaults + `.dark` overrides (the panel
+   carries a `.dark` ancestor in dark theme). Allowlist-sanitized HTML only. */
+.gb-prose {
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+.gb-prose h1 { font-size: 18px; font-weight: 600; margin: 8px 0 4px; }
+.gb-prose h2 { font-size: 15px; font-weight: 600; margin: 8px 0 4px; }
+.gb-prose h3 { font-size: 14px; font-weight: 600; margin: 6px 0 4px; }
+.gb-prose h4,
+.gb-prose h5,
+.gb-prose h6 { font-size: 13px; font-weight: 600; margin: 6px 0 4px; }
+.gb-prose p { margin: 4px 0; }
+.gb-prose ul,
+.gb-prose ol { padding-inline-start: 20px; margin: 4px 0; }
+.gb-prose ul { list-style: disc; }
+.gb-prose ol { list-style: decimal; }
+.gb-prose li { margin: 2px 0; }
+.gb-prose strong { font-weight: 600; }
+.gb-prose em { font-style: italic; }
+.gb-prose code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+.gb-prose pre {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 8px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 6px 0;
+}
+.gb-prose pre code { background: none; padding: 0; }
+.gb-prose blockquote {
+  border-inline-start: 3px solid rgba(0, 0, 0, 0.12);
+  padding-inline-start: 8px;
+  margin: 6px 0;
+  color: #737373;
+}
+.gb-prose a { color: #2563eb; text-decoration: underline; }
+.gb-prose hr {
+  border: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  margin: 8px 0;
+}
+
+.dark .gb-prose code,
+.dark .gb-prose pre { background: rgba(255, 255, 255, 0.08); }
+.dark .gb-prose blockquote {
+  border-inline-start-color: rgba(255, 255, 255, 0.14);
+  color: #a3a3a3;
+}
+.dark .gb-prose a { color: #60a5fa; }
+.dark .gb-prose hr { border-top-color: rgba(255, 255, 255, 0.1); }

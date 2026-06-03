@@ -189,6 +189,8 @@ export const activeAppItem = storage.defineItem<AppId | null>('local:gb-active-a
 });
 ```
 
+The snippet above is the Phase 00 core; each later phase appends its own items to `lib/storage.ts`. Notes (Phase 03) adds: `notesItem` (`local:gb-notes`, `Note[]`), `labelsItem` (`local:gb-note-labels`, `LabelMeta[]`), and `notesUiItem` (`local:gb-notes-ui`, `NotesUiState` — active view, expanded, layout, default color). All `local:` (single-device); no `sync:` items since note bodies exceed the 100 KB `chrome.storage.sync` cap.
+
 Why `defineItem` over raw `browser.storage.local.get/set`:
 - One place declares the key, type, and default.
 - `getValue()` / `setValue()` are typed.
